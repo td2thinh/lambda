@@ -1,0 +1,3 @@
+(tests
+ (names alphaConv listUtils lambdaVars ltRCbV)
+ (libraries alcotest coreLib))

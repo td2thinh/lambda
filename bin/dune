@@ -1,4 +1,4 @@
 (executable
  (public_name lambda)
  (name main)
- (libraries coreLib))
+ (libraries coreLib fmt))

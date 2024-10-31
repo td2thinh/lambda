@@ -19,7 +19,7 @@
  (name lambda)
  (synopsis "A short synopsis")
  (description "A longer description")
- (depends ocaml dune alcotest)
+ (depends ocaml dune alcotest fmt)
  (tags
   (topics "to describe" your project)))
 
