@@ -4,20 +4,22 @@ This project aims to develop a somewhat sotisphicated Lambda Calculus based lang
 
 # ROAD MAP: 
 
-<s> 1. Interpreting pure Lambda Calculus:
+1. Interpreting pure Lambda Calculus:
+<s>
 - alpha conversion
 - left to rightm call by value Evaluation
 - normalisation using LtR-CbV
 - encode I, δ, Ω, S, S K K, S I I, 0, 1, 2, 3, arithmetic operations
 - tests
 </s>
-2. Simple Types:
+2. Simple Type: 
 - type equations
 - type occurrence check
 - typed substitution
 - unification
 - type resolver and inference
 - tests
+    
 3. Polymorphed Lambda Calculus with more Types
 4. Imperative features 
 
