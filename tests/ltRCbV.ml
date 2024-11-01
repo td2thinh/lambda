@@ -64,6 +64,7 @@ let test_case_7 =
 let identity = Abs ("x", Var "x")
 let apply = Abs ("x", Abs ("y", App (Var "x", Var "y")))
 let k_function = Abs ("x", Abs ("y", Var "x"))
+let f_function = Abs ("x", Abs ("y", Var "y"))
 
 let s_function =
   Abs
@@ -112,7 +113,14 @@ let church_pred =
                   Abs ("u", Var "u") ) ) ) )
 
 let sub = Abs ("m", Abs ("n", App (App (Var "n", church_pred), Var "m")))
+let true_lambda = k_function
+let false_lambda = f_function
+let and_lambda = Abs ("p", Abs ("q", App (App (Var "p", Var "q"), false_lambda)))
 
+let is_zero =
+  Abs ("n", App (App (Var "n", Abs ("x", false_lambda)), true_lambda))
+
+(* Test cases for the lambda functions *)
 let term_test =
   Alcotest.testable CoreLib.LambdaUtils.pp CoreLib.LambdaUtils.equal
 
@@ -207,6 +215,85 @@ let test_sii () =
     "test_sii" true
     (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
 
+let test_addition () =
+  let lambda_expr = App (App (plus, church_two), church_three) in
+  let result = ltr_cbv_norm lambda_expr in
+  let expected =
+    Abs
+      ( "f",
+        Abs
+          ( "x",
+            App
+              ( Var "f",
+                App
+                  (Var "f", App (Var "f", App (Var "f", App (Var "f", Var "x"))))
+              ) ) )
+  in
+  Alcotest.(check bool)
+    "test_addition" true
+    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+
+let test_multiplication () =
+  let result = ltr_cbv_norm (App (App (mult, church_two), church_zero)) in
+  let expected = church_zero in
+  Alcotest.(check bool)
+    "test_multiplication" true
+    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+
+let test_subtraction () =
+  let result = ltr_cbv_norm (App (App (sub, church_three), church_two)) in
+  let expected = church_one in
+  Alcotest.(check bool)
+    "test_subtraction" true
+    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+
+let test_church_pred () =
+  let lambda_expr = App (church_pred, church_three) in
+  let result = ltr_cbv_norm lambda_expr in
+  let expected = church_two in
+  Alcotest.(check bool)
+    "test_church_pred" true
+    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+
+let test_church_pred_zero () =
+  let lambda_expr = App (church_pred, church_zero) in
+  let result = ltr_cbv_norm lambda_expr in
+  let expected = church_zero in
+  Alcotest.(check bool)
+    "test_church_pred_zero" true
+    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+
+let test_church_pred_one () =
+  let lambda_expr = App (church_pred, church_one) in
+  let result = ltr_cbv_norm lambda_expr in
+  let expected = church_zero in
+  Alcotest.(check bool)
+    "test_church_pred_one" true
+    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+
+let test_and_lambda () =
+  let result =
+    ltr_cbv_norm (App (App (and_lambda, true_lambda), true_lambda))
+  in
+  let expected = true_lambda in
+  Alcotest.(check bool)
+    "test_and_lambda" true
+    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+
+let test_is_zero () =
+  let result = ltr_cbv_norm (App (is_zero, church_zero)) in
+  let expected = true_lambda in
+  Alcotest.(check bool)
+    "test_is_zero" true
+    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+
+let test_zero_2 () =
+  let sub2 = ltr_cbv_norm (App (App (sub, church_three), church_three)) in
+  let expected = church_zero in
+  Alcotest.(check bool)
+    "test_zero_2" true
+    (CoreLib.LambdaUtils.alpha_equal expected (just_result sub2))
+
 let () =
   let open Alcotest in
   run "Lambda"
@@ -226,7 +313,17 @@ let () =
           test_case "test_s" `Quick test_s;
           test_case "test_skk" `Quick test_skk;
           test_case "test_delta" `Quick test_delta;
-          test_case "test_omega" `Quick test_omega;
+          test_case "test_omega (expect None)" `Quick test_omega;
           test_case "test_sii" `Quick test_sii;
+          test_case "test_addition" `Quick test_addition;
+          test_case "test_multiplication" `Quick test_multiplication;
+          test_case "test_church_pred" `Quick test_church_pred;
+          test_case "test_subtraction" `Quick test_subtraction;
+          test_case "test_church_pred_zero" `Quick test_church_pred_zero;
+          test_case "test_church_pred_one" `Quick test_church_pred_one;
+          test_case "test_and_lambda (true and false = false)" `Quick
+            test_and_lambda;
+          test_case "test_is_zero with church zero" `Quick test_is_zero;
+          test_case "test_is_zero by substracting" `Quick test_zero_2;
         ] );
     ]
