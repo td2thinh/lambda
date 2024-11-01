@@ -11,7 +11,7 @@ This project aims to develop a somewhat sotisphicated Lambda Calculus based lang
 - encode I, δ, Ω, S, S K K, S I I, 0, 1, 2, 3, arithmetic operations
 - tests
 </s>
-2. Simple Types
+2. Simple Types:
 - type equations
 - type occurrence check
 - typed substitution
