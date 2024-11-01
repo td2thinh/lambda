@@ -5,14 +5,14 @@ This project aims to develop a somewhat sotisphicated Lambda Calculus based lang
 # ROAD MAP:
 
 1. Interpreting pure Lambda Calculus:
-   <s>
-
+  
+<s>
 - alpha conversion
 - left to rightm call by value Evaluation
 - normalisation using LtR-CbV
 - encode I, δ, Ω, S, S K K, S I I, 0, 1, 2, 3, arithmetic operations
 - tests
-  </s>
+</s>
 
 2. Simple Type:
 
