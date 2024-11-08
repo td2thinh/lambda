@@ -75,16 +75,16 @@ let rec ltr_cbv_step (term : lambda_term) : lambda_term option =
 let max_steps = 300
 
 (* Normalize a lambda term using the Left to Right - Call by Value strategy *)
-let ltr_cbv_norm (term : lambda_term) : lambda_term option =
+let ltr_cbv_norm (term : lambda_term) : (lambda_term, string) result =
   let term_alpha_converted = alpha_conversion term in
   let counter = ref 0 in
-  let rec aux (term : lambda_term) : lambda_term option =
-    if !counter >= max_steps then None
+  let rec aux (term : lambda_term) : (lambda_term, string) result =
+    if !counter >= max_steps then Error "Max reduction steps exceeded"
     else
       match ltr_cbv_step term with
       | Some t ->
           counter := !counter + 1;
           aux t
-      | None -> Some term
+      | None -> Ok term
   in
   aux term_alpha_converted

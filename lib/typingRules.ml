@@ -64,25 +64,32 @@ let rec substitute_type_all (var : string) (new_type : lambda_type)
 
 let max_unification_steps = 300
 
-let unification_step (equations : type_equation) : type_equation =
+let unification_step (equations : type_equation) :
+    (type_equation, string) result =
   let current_count = ref 0 in
-  let rec aux (equations : type_equation) : type_equation =
-    if !current_count >= max_unification_steps then failwith "Max steps reached"
+  let rec aux (equations : type_equation) : (type_equation, string) result =
+    if !current_count >= max_unification_steps then
+      Error "Max unification steps exceeded"
     else
       match equations with
-      | [] -> []
+      | [] -> Ok []
       | (t1, t2) :: xs -> (
-          current_count := !current_count + 1;
-          match (t1, t2) with
-          | TVar x, t ->
-              if not (occur_check x t) then
-                (t1, t2) :: aux (substitute_type_all x t equations)
-              else failwith "Type variable occurs in the type itself"
-          | t, TVar x ->
-              if not (occur_check x t) then
-                (t1, t2) :: aux (substitute_type_all x t equations)
-              else failwith "Type variable occurs in the type itself"
-          | TArrow (t1, t2), TArrow (t1', t2') ->
-              aux ((t1, t1') :: (t2, t2') :: xs))
+          if t1 = t2 then aux xs
+          else
+            match (t1, t2) with
+            | TVar x, _ ->
+                if occur_check x t2 then
+                  Error "Type variable occurs in other equation"
+                else
+                  let new_equations = substitute_type_all x t2 xs in
+                  aux new_equations
+            | _, TVar x ->
+                if occur_check x t1 then
+                  Error "Type variable occurs in other equation"
+                else
+                  let new_equations = substitute_type_all x t1 xs in
+                  aux new_equations
+            | TArrow (t1a, t1b), TArrow (t2a, t2b) ->
+                aux ((t1a, t2a) :: (t1b, t2b) :: xs))
   in
   aux equations

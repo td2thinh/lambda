@@ -124,96 +124,109 @@ let is_zero =
 let term_test =
   Alcotest.testable CoreLib.LambdaUtils.pp CoreLib.LambdaUtils.equal
 
-let just_result result = match result with Some t -> t | None -> Var "None"
+(* Helper function to extract result or raise a test failure on error *)
+let unwrap_result result test_name =
+  match result with
+  | Ok x -> x
+  | Error msg -> Alcotest.failf "%s failed with error: %s" test_name msg
 
 let test_1 () =
   let result = ltr_cbv_norm test_case_1 in
   let expected = Var "y" in
-  Alcotest.(check term_test) "test_1" expected (just_result result)
+  match result with
+  | Ok x -> Alcotest.(check term_test) "test_1" expected x
+  | Error msg -> Alcotest.fail msg
 
 let test_2 () =
   let result = ltr_cbv_norm test_case_2 in
   let expected = identity in
   Alcotest.(check bool)
     "test_2" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected (unwrap_result result "test_2"))
 
 let test_3 () =
   let result = ltr_cbv_norm test_case_3 in
   let expected = Var "z" in
-  Alcotest.(check term_test) "test_3" expected (just_result result)
+  Alcotest.(check term_test) "test_3" expected (unwrap_result result "test_3")
 
 let test_4 () =
   let result = ltr_cbv_norm test_case_4 in
   let expected = Var "z" in
-  Alcotest.(check term_test) "test_4" expected (just_result result)
+  Alcotest.(check term_test) "test_4" expected (unwrap_result result "test_4")
 
 let test_5 () =
   let result = ltr_cbv_norm test_case_5 in
   let expected = Var "w" in
-  Alcotest.(check term_test) "test_5" expected (just_result result)
+  Alcotest.(check term_test) "test_5" expected (unwrap_result result "test_5")
 
 let test_6 () =
   let result = ltr_cbv_norm test_case_6 in
   let expected = App (Var "x", Var "z") in
-  Alcotest.(check term_test) "test_6" expected (just_result result)
+  Alcotest.(check term_test) "test_6" expected (unwrap_result result "test_6")
 
 let test_7 () =
   let result = ltr_cbv_norm test_case_7 in
   let expected = App (Var "z", Var "w") in
-  Alcotest.(check term_test) "test_7" expected (just_result result)
+  Alcotest.(check term_test) "test_7" expected (unwrap_result result "test_7")
 
 let test_identity () =
   let result = ltr_cbv_norm identity in
   let expected = Abs ("X14", Var "X14") in
-  Alcotest.(check term_test) "test_identity" expected (just_result result)
+  Alcotest.(check term_test)
+    "test_identity" expected
+    (unwrap_result result "test_identity")
 
 let test_apply () =
   let result = ltr_cbv_norm apply in
   let expected = apply in
   Alcotest.(check bool)
     "test_apply" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected
+       (unwrap_result result "test_apply"))
 
 let test_k () =
   let result = ltr_cbv_norm k_function in
   let expected = k_function in
   Alcotest.(check bool)
     "test_k" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected (unwrap_result result "test_k"))
 
 let test_s () =
   let result = ltr_cbv_norm s_function in
   let expected = s_function in
   Alcotest.(check bool)
     "test_s" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected (unwrap_result result "test_s"))
 
 let test_skk () =
   let result = ltr_cbv_norm skk in
   let expected = identity in
   Alcotest.(check bool)
     "test_skk" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected (unwrap_result result "test_skk"))
 
 let test_delta () =
   let result = ltr_cbv_norm delta in
   let expected = delta in
   Alcotest.(check bool)
     "test_delta" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected
+       (unwrap_result result "test_delta"))
 
-(* Omega should give None because its not reducible *)
+(* Omega should fail with error message "Max reduction steps exceeded" *)
 let test_omega () =
-  Alcotest.(check bool) "test_omega" true (ltr_cbv_norm omega = None)
+  let result = ltr_cbv_norm omega in
+  match result with
+  | Ok _ -> Alcotest.fail "Expected failure for omega, but got success"
+  | Error msg ->
+      Alcotest.(check string) "test_omega" "Max reduction steps exceeded" msg
 
 let test_sii () =
   let result = ltr_cbv_norm sii in
-  (* Should be λX. x x *)
   let expected = Abs ("x", App (Var "x", Var "x")) in
   Alcotest.(check bool)
     "test_sii" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected (unwrap_result result "test_sii"))
 
 let test_addition () =
   let lambda_expr = App (App (plus, church_two), church_three) in
@@ -231,21 +244,24 @@ let test_addition () =
   in
   Alcotest.(check bool)
     "test_addition" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected
+       (unwrap_result result "test_addition"))
 
 let test_multiplication () =
   let result = ltr_cbv_norm (App (App (mult, church_two), church_zero)) in
   let expected = church_zero in
   Alcotest.(check bool)
     "test_multiplication" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected
+       (unwrap_result result "test_multiplication"))
 
 let test_subtraction () =
   let result = ltr_cbv_norm (App (App (sub, church_three), church_two)) in
   let expected = church_one in
   Alcotest.(check bool)
     "test_subtraction" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected
+       (unwrap_result result "test_subtraction"))
 
 let test_church_pred () =
   let lambda_expr = App (church_pred, church_three) in
@@ -253,7 +269,8 @@ let test_church_pred () =
   let expected = church_two in
   Alcotest.(check bool)
     "test_church_pred" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected
+       (unwrap_result result "test_church_pred"))
 
 let test_church_pred_zero () =
   let lambda_expr = App (church_pred, church_zero) in
@@ -261,7 +278,8 @@ let test_church_pred_zero () =
   let expected = church_zero in
   Alcotest.(check bool)
     "test_church_pred_zero" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected
+       (unwrap_result result "test_church_pred_zero"))
 
 let test_church_pred_one () =
   let lambda_expr = App (church_pred, church_one) in
@@ -269,7 +287,8 @@ let test_church_pred_one () =
   let expected = church_zero in
   Alcotest.(check bool)
     "test_church_pred_one" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected
+       (unwrap_result result "test_church_pred_one"))
 
 let test_and_lambda () =
   let result =
@@ -278,21 +297,24 @@ let test_and_lambda () =
   let expected = true_lambda in
   Alcotest.(check bool)
     "test_and_lambda" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected
+       (unwrap_result result "test_and_lambda"))
 
 let test_is_zero () =
   let result = ltr_cbv_norm (App (is_zero, church_zero)) in
   let expected = true_lambda in
   Alcotest.(check bool)
     "test_is_zero" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result result))
+    (CoreLib.LambdaUtils.alpha_equal expected
+       (unwrap_result result "test_is_zero"))
 
 let test_zero_2 () =
   let sub2 = ltr_cbv_norm (App (App (sub, church_three), church_three)) in
   let expected = church_zero in
   Alcotest.(check bool)
     "test_zero_2" true
-    (CoreLib.LambdaUtils.alpha_equal expected (just_result sub2))
+    (CoreLib.LambdaUtils.alpha_equal expected
+       (unwrap_result sub2 "test_zero_2"))
 
 let () =
   let open Alcotest in
