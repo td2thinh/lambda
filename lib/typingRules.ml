@@ -61,3 +61,28 @@ let rec substitute_type_all (var : string) (new_type : lambda_type)
       let new_t1 = substitute_type var new_type t1 in
       let new_t2 = substitute_type var new_type t2 in
       (new_t1, new_t2) :: substitute_type_all var new_type xs
+
+let max_unification_steps = 300
+
+let unification_step (equations : type_equation) : type_equation =
+  let current_count = ref 0 in
+  let rec aux (equations : type_equation) : type_equation =
+    if !current_count >= max_unification_steps then failwith "Max steps reached"
+    else
+      match equations with
+      | [] -> []
+      | (t1, t2) :: xs -> (
+          current_count := !current_count + 1;
+          match (t1, t2) with
+          | TVar x, t ->
+              if not (occur_check x t) then
+                (t1, t2) :: aux (substitute_type_all x t equations)
+              else failwith "Type variable occurs in the type itself"
+          | t, TVar x ->
+              if not (occur_check x t) then
+                (t1, t2) :: aux (substitute_type_all x t equations)
+              else failwith "Type variable occurs in the type itself"
+          | TArrow (t1, t2), TArrow (t1', t2') ->
+              aux ((t1, t1') :: (t2, t2') :: xs))
+  in
+  aux equations
