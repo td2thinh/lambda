@@ -91,18 +91,18 @@ let rec unification_step (equations : type_equation) (env : type_env) :
       else
         let new_env = (x, t) :: env in
         let new_equations = substitute_type_all x t xs in
-        let _ =
-          Printf.printf "Equations: %s\n" (print_equation new_equations)
-        in
+        (* let _ =
+             Printf.printf "Equations: %s\n" (print_equation new_equations)
+           in *)
         Ok (new_equations, new_env)
   | (t, TVar x) :: xs ->
       if occur_check x t then Error "Type error: recursion"
       else
         let new_env = (x, t) :: env in
         let new_equations = substitute_type_all x t xs in
-        let _ =
-          Printf.printf "Equations: %s\n" (print_equation new_equations)
-        in
+        (* let _ =
+             Printf.printf "Equations: %s\n" (print_equation new_equations)
+           in *)
         Ok (new_equations, new_env)
   | (TArrow (t1, t2), TArrow (t1', t2')) :: xs ->
       let new_equations = [ (t1, t1'); (t2, t2') ] @ xs in
@@ -121,6 +121,9 @@ let unification (equations : type_equation) (env : type_env) :
       match unification_step equations env with
       | Ok ([], env) -> Ok env
       | Ok (new_equations, new_env) ->
+          let _ =
+            Printf.printf "Equations: %s\n" (print_equation new_equations)
+          in
           counter := !counter + 1;
           aux new_equations new_env
       | Error e -> Error e
@@ -139,10 +142,9 @@ let type_inference (term : lambda_term) : (lambda_type, string) result =
   let type_var = TVar new_var in
   let env = [] in
   let equations = generate_equations term type_var env in
-  let _ = Printf.printf "Equations: %s\n" (print_equation equations) in
   match unification equations env with
   | Ok env ->
-      let _ = Printf.printf "Environment: %s\n" (print_env env) in
+      (* let _ = Printf.printf "Environment: %s\n" (print_env env) in *)
       let result = substitute_type_env env type_var in
       let _ = Printf.printf "Result: %s\n" (print_type result) in
       Ok result
