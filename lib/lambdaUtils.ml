@@ -67,13 +67,3 @@ let rec print_type (t : lambda_type) : string =
   | TArrow (t1, t2) ->
       Printf.sprintf "(%s -> %s)" (print_type t1) (print_type t2)
 (* | TNat -> "Nat" *)
-
-let type_equal (t1 : lambda_type) (t2 : lambda_type) : bool =
-  let rec aux (t1 : lambda_type) (t2 : lambda_type) : bool =
-    match (t1, t2) with
-    | TVar x, TVar y -> x = y
-    | TArrow (t1, t2), TArrow (t1', t2') -> aux t1 t1' && aux t2 t2'
-    (* | TNat, TNat -> true *)
-    | _ -> false
-  in
-  aux t1 t2

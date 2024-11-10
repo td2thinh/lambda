@@ -1,4 +1,5 @@
 open TermTypes
+open LambdaUtils
 
 let counter_var_type : int ref = ref 0
 
@@ -7,6 +8,16 @@ let fresh_var_type () : string =
   "T" ^ string_of_int !counter_var_type
 
 type type_equation = (lambda_type * lambda_type) list
+
+let print_equation (equation : type_equation) : string =
+  let rec aux (equation : type_equation) : string =
+    match equation with
+    | [] -> ""
+    | (t1, t2) :: xs ->
+        Printf.sprintf "%s = %s\n" (print_type t1) (print_type t2) ^ aux xs
+  in
+  aux equation
+
 type type_env = (string * lambda_type) list
 
 let rec search_type (var : string) (env : type_env) : lambda_type option =
@@ -48,7 +59,7 @@ let rec occur_check (var : string) (t : lambda_type) : bool =
 let rec substitute_type (var : string) (new_type : lambda_type)
     (t : lambda_type) : lambda_type =
   match t with
-  | TVar x -> if x = var then new_type else TVar x
+  | TVar x -> if x = var then new_type else t
   | TArrow (t1, t2) ->
       TArrow (substitute_type var new_type t1, substitute_type var new_type t2)
 (* | TNat -> TNat *)
@@ -62,34 +73,77 @@ let rec substitute_type_all (var : string) (new_type : lambda_type)
       let new_t2 = substitute_type var new_type t2 in
       (new_t1, new_t2) :: substitute_type_all var new_type xs
 
+let print_env (env : type_env) : string =
+  let rec aux (env : type_env) : string =
+    match env with
+    | [] -> ""
+    | (x, t) :: xs -> Printf.sprintf "%s : %s\n" x (print_type t) ^ aux xs
+  in
+  aux env
+
+let rec unification_step (equations : type_equation) (env : type_env) :
+    (type_equation * type_env, string) result =
+  match equations with
+  | [] -> Ok ([], env)
+  | (t1, t2) :: xs when t1 = t2 -> unification_step xs env
+  | (TVar x, t) :: xs ->
+      if occur_check x t then Error "Type error: recursion"
+      else
+        let new_env = (x, t) :: env in
+        let new_equations = substitute_type_all x t xs in
+        let _ =
+          Printf.printf "Equations: %s\n" (print_equation new_equations)
+        in
+        Ok (new_equations, new_env)
+  | (t, TVar x) :: xs ->
+      if occur_check x t then Error "Type error: recursion"
+      else
+        let new_env = (x, t) :: env in
+        let new_equations = substitute_type_all x t xs in
+        let _ =
+          Printf.printf "Equations: %s\n" (print_equation new_equations)
+        in
+        Ok (new_equations, new_env)
+  | (TArrow (t1, t2), TArrow (t1', t2')) :: xs ->
+      let new_equations = [ (t1, t1'); (t2, t2') ] @ xs in
+      unification_step new_equations env
+
 let max_unification_steps = 300
 
-let unification_step (equations : type_equation) :
-    (type_equation, string) result =
-  let current_count = ref 0 in
-  let rec aux (equations : type_equation) : (type_equation, string) result =
-    if !current_count >= max_unification_steps then
+let unification (equations : type_equation) (env : type_env) :
+    (type_env, string) result =
+  let counter = ref 0 in
+  let rec aux (equations : type_equation) (env : type_env) :
+      (type_env, string) result =
+    if !counter >= max_unification_steps then
       Error "Max unification steps exceeded"
     else
-      match equations with
-      | [] -> Ok []
-      | (t1, t2) :: xs -> (
-          if t1 = t2 then aux xs
-          else
-            match (t1, t2) with
-            | TVar x, _ ->
-                if occur_check x t2 then
-                  Error "Type variable occurs in other equation"
-                else
-                  let new_equations = substitute_type_all x t2 xs in
-                  aux new_equations
-            | _, TVar x ->
-                if occur_check x t1 then
-                  Error "Type variable occurs in other equation"
-                else
-                  let new_equations = substitute_type_all x t1 xs in
-                  aux new_equations
-            | TArrow (t1a, t1b), TArrow (t2a, t2b) ->
-                aux ((t1a, t2a) :: (t1b, t2b) :: xs))
+      match unification_step equations env with
+      | Ok ([], env) -> Ok env
+      | Ok (new_equations, new_env) ->
+          counter := !counter + 1;
+          aux new_equations new_env
+      | Error e -> Error e
   in
-  aux equations
+  aux equations env
+
+let rec substitute_type_env (env : type_env) (t : lambda_type) : lambda_type =
+  match t with
+  | TVar x -> (
+      try substitute_type_env env (List.assoc x env) with Not_found -> TVar x)
+  | TArrow (t1, t2) ->
+      TArrow (substitute_type_env env t1, substitute_type_env env t2)
+
+let type_inference (term : lambda_term) : (lambda_type, string) result =
+  let new_var = fresh_var_type () in
+  let type_var = TVar new_var in
+  let env = [] in
+  let equations = generate_equations term type_var env in
+  let _ = Printf.printf "Equations: %s\n" (print_equation equations) in
+  match unification equations env with
+  | Ok env ->
+      let _ = Printf.printf "Environment: %s\n" (print_env env) in
+      let result = substitute_type_env env type_var in
+      let _ = Printf.printf "Result: %s\n" (print_type result) in
+      Ok result
+  | Error e -> Error e
