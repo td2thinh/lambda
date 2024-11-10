@@ -56,7 +56,7 @@ The inference algorithm is as follow :
 
 The Unification algorithm is as follow :
 - `unification` function takes a list of type equations and calls `unification_step` with a maximum number of steps of 300
-- it uses a simple algorithm : for each equation in the list, it tries to unify the two types, if the two types are the same, it removes the equation from the list, if the two types are different, we substitute the type variables for all the other equations using `substitute_type_all` and we add the new equations to the list, we do this until we can't unify anymore or we reach the maximum number of steps
+- it uses a simple algorithm : for each equation in the list, it tries to unify the two types, if the two types are the same, it removes the equation from the list, if the two types are different, we use `occur_check` to see if it occurs in both sides of the equation (it shouldn't), we substitute the type variables for all the other equations using `substitute_type_all` and we add the new equations to the list, we do this until we can't unify anymore or we reach the maximum number of steps
 
 3. Polymorphed Lambda Calculus with more Types
 4. Imperative features
