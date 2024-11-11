@@ -1,5 +1,6 @@
 open TermTypes
-open LambdaUtils
+
+(* open LambdaUtils *)
 module L = List
 module M = Map
 
@@ -24,25 +25,44 @@ let alpha_conversion (term : lambda_term) : lambda_term =
         let new_var = fresh_var () in
         Abs (new_var, aux t (StringMap.add x new_var var_map))
     | App (t1, t2) -> App (aux t1 var_map, aux t2 var_map)
+    (* | Let (x, t1, t2) ->
+           let new_var = fresh_var () in
+           Let (new_var, aux t1 var_map, aux t2 (StringMap.add x new_var var_map))
+       | IfZero (t1, t2, t3) ->
+           IfZero (aux t1 var_map, aux t2 var_map, aux t3 var_map)
+       | IfEmpty (t1, t2, t3) ->
+           IfEmpty (aux t1 var_map, aux t2 var_map, aux t3 var_map)
+       | List l -> List (L.map (fun x -> aux x var_map) l)
+       | _ -> term *)
   in
   aux term var_map
 
 (* Subsitute all free variables by a new term *)
 let rec substitution (var : string) (new_term : lambda_term)
     (term : lambda_term) : lambda_term =
+  let term = alpha_conversion term in
   match term with
   | Var x -> if x = var then new_term else term
   | App (t1, t2) ->
       App (substitution var new_term t1, substitution var new_term t2)
   | Abs (x, t) ->
-      if x = var then
-        (* If bound variable is same as substitution variable, don't substitute *)
-        term
-      else if List.mem x (variables new_term) then
-        (* If the variable is free in the new term, alpha convert the term first *)
-        let new_var = fresh_var () in
-        Abs (new_var, substitution x (Var new_var) (substitution var new_term t))
-      else Abs (x, substitution var new_term t)
+      let new_var = fresh_var () in
+      Abs (new_var, substitution var new_term (substitution x (Var new_var) t))
+(* | Let (x, t1, t2) ->
+       if x = var then term
+       else Let (x, substitution var new_term t1, substitution var new_term t2)
+   | IfZero (t1, t2, t3) ->
+       IfZero
+         ( substitution var new_term t1,
+           substitution var new_term t2,
+           substitution var new_term t3 )
+   | IfEmpty (t1, t2, t3) ->
+       IfEmpty
+         ( substitution var new_term t1,
+           substitution var new_term t2,
+           substitution var new_term t3 )
+   | List l -> List (L.map (fun x -> substitution var new_term x) l)
+   | _ -> term *)
 
 (* Beta reduction using the Left to Right - Call by Value strategy *)
 (* Reduce to lambda expressions, only reduce Applications

@@ -83,6 +83,7 @@ lambda/
 ├── lambda.opam                 # OPAM package file
 ├── Makefile                    # Makefile for building and running the project
 ├── README.md                   # Project README file
+└── test.txt                    # This file contains the type inference with prints
 ```
 
 # Execution
@@ -114,6 +115,7 @@ $ make test
 - Encoding arithmetic and church integers found at wiki: https://en.wikipedia.org/wiki/Lambda_calculus#Encoding_datatypes
 
 - Idea to improve `CoreLib.LambdaRules.substitution` method found in : https://github.com/kmicinski/cmsc330examples as I was having some problem testing Church numerals, I found out that I need to check for free variables and alpha rename the variables in the substituting term in case there is variable capture (ie. variables of the same name but not the same). I also learned that I could have just alpha renamed my term every reduction step to avoid this problem.
+EDIT: Finally, I chose to alpha rename the term every reduction step to avoid variable capture.
 
 - While testing type inference I found out that K.I.ω = I but the algorithm will try to unify the equations and will fail, because ω is diverging so inference will fail with recursive types error but the term is actually well typed. I think this behavior is expected with the given algorithm in the project.
 

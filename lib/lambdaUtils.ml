@@ -6,18 +6,36 @@ let print_term (term : lambda_term) : string =
     | Var x -> x
     | Abs (x, t) -> Printf.sprintf "(λ%s.%s)" x (aux t)
     | App (t1, t2) -> Printf.sprintf "(%s %s)" (aux t1) (aux t2)
+    (* | App (t1, t2) -> (
+           match t1 with
+           | App (t1_1, t1_2) -> (
+               match t1_1 with
+               | Add (t1_1_1, t1_1_2) ->
+                   Printf.sprintf "(%s + %s) %s" (aux t1_1_1) (aux t1_1_2)
+                     (aux t1_2)
+               | Sub (t1_1_1, t1_1_2) ->
+                   Printf.sprintf "(%s - %s) %s" (aux t1_1_1) (aux t1_1_2)
+                     (aux t1_2)
+               | Cons (t1_1_1, t1_1_2) ->
+                   Printf.sprintf "(%s :: %s) %s" (aux t1_1_1) (aux t1_1_2)
+                     (aux t1_2)
+               | _ -> Printf.sprintf "(%s %s)" (aux t1) (aux t2))
+           | _ -> Printf.sprintf "(%s %s)" (aux t1) (aux t2))
+       | IfZero (t1, t2, t3) ->
+           Printf.sprintf "(if0 %s then %s else %s)" (aux t1) (aux t2) (aux t3)
+       | IfEmpty (t1, t2, t3) ->
+           Printf.sprintf "(ifE %s then %s else %s)" (aux t1) (aux t2) (aux t3)
+       | List l -> Printf.sprintf "[%s]" (String.concat "; " (List.map aux l))
+       | Cons (t1, t2) -> Printf.sprintf "(%s :: %s)" (aux t1) (aux t2)
+       | Head t -> Printf.sprintf "head %s" (aux t)
+       | Tail t -> Printf.sprintf "tail %s" (aux t)
+       | Let (x, t1, t2) -> Printf.sprintf "let %s = %s in %s" x (aux t1) (aux t2)
+       | Val n -> string_of_int n
+       | Fix t -> Printf.sprintf "fix %s" (aux t)
+       | Add (t1, t2) -> Printf.sprintf "(%s + %s)" (aux t1) (aux t2)
+       | Sub (t1, t2) -> Printf.sprintf "(%s - %s)" (aux t1) (aux t2) *)
   in
   aux term
-
-(*  function to return all the variables in a lambda term *)
-let variables (term : lambda_term) : string list =
-  let rec aux (term : lambda_term) : string list =
-    match term with
-    | Var x -> [ x ]
-    | Abs (x, t) -> List.filter (fun y -> y <> x) (aux t)
-    | App (t1, t2) -> List.rev_append (aux t1) (aux t2)
-  in
-  List.sort_uniq String.compare (aux term)
 
 let pp ppf term = Fmt.pf ppf "%s" (print_term term)
 
