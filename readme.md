@@ -28,7 +28,7 @@ Evaluation strategy used is Left-to-Right Call by Value, `I, δ, Ω, S, S K K, S
 - typed substitution : done
 - unification : done
 - type inference : done
-- tests 
+- tests : done 
 
 A simple type is defined as : 
 
