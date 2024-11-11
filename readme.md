@@ -74,11 +74,8 @@ lambda/
 │   ├── termTypes.ml            # Definitions of a lambda term and types
 │   ├── lambdaRules.ml          # Reduction rules for lambda calculus
 │   ├── typingRules.ml          # Type inference and unification rules
-│   ├── listUtils.ml            # Utility functions for lists
 ├── tests/                      # Test files
 │   ├── alphaConv.ml            # Tests for alpha conversion
-│   ├── lambdaVars.ml           # Tests for free and bound variables
-│   ├── listUtils.ml            # Tests list utility functions
 │   ├── ltRCbV.ml               # Tests for left-to-right call by value evaluation
 │   ├── typeInference.ml        # Tests for type inference
 ├── dune                        # Dune build configuration file

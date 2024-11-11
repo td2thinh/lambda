@@ -1,4 +1,4 @@
 (library
  (name coreLib)
- (modules listUtils termTypes lambdaUtils lambdaRules typingRules)
+ (modules termTypes lambdaUtils lambdaRules typingRules)
  (libraries fmt))

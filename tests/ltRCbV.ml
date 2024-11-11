@@ -122,7 +122,7 @@ let is_zero =
 
 (* Test cases for the lambda functions *)
 let term_test =
-  Alcotest.testable CoreLib.LambdaUtils.pp CoreLib.LambdaUtils.equal
+  Alcotest.testable CoreLib.LambdaUtils.pp CoreLib.LambdaUtils.alpha_equal
 
 (* Helper function to extract result or raise a test failure on error *)
 let unwrap_result result test_name =
@@ -171,7 +171,7 @@ let test_7 () =
 
 let test_identity () =
   let result = ltr_cbv_norm identity in
-  let expected = Abs ("X14", Var "X14") in
+  let expected = Abs ("X16", Var "X16") in
   Alcotest.(check term_test)
     "test_identity" expected
     (unwrap_result result "test_identity")

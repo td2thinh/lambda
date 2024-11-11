@@ -31,24 +31,18 @@ let alpha_conversion (term : lambda_term) : lambda_term =
 let rec substitution (var : string) (new_term : lambda_term)
     (term : lambda_term) : lambda_term =
   match term with
-  | Var x -> if x = var then new_term else Var x
+  | Var x -> if x = var then new_term else term
   | App (t1, t2) ->
       App (substitution var new_term t1, substitution var new_term t2)
   | Abs (x, t) ->
       if x = var then
         (* If bound variable is same as substitution variable, don't substitute *)
         term
-      else
-        (* Check if x appears free in new_term *)
-        let new_term_free = free_vars new_term in
-        if not (List.mem x new_term_free) then
-          (* No variable capture possible, proceed with substitution *)
-          Abs (x, substitution var new_term t)
-        else
-          (* Potential variable capture - perform alpha conversion first *)
-          let new_var = fresh_var () in
-          let renamed_body = substitution x (Var new_var) t in
-          Abs (new_var, substitution var new_term renamed_body)
+      else if List.mem x (variables new_term) then
+        (* If the variable is free in the new term, alpha convert the term first *)
+        let new_var = fresh_var () in
+        Abs (new_var, substitution x (Var new_var) (substitution var new_term t))
+      else Abs (x, substitution var new_term t)
 
 (* Beta reduction using the Left to Right - Call by Value strategy *)
 (* Reduce to lambda expressions, only reduce Applications

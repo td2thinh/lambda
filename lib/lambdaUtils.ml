@@ -1,5 +1,4 @@
 open TermTypes
-open ListUtils
 
 let print_term (term : lambda_term) : string =
   let rec aux (term : lambda_term) : string =
@@ -10,33 +9,15 @@ let print_term (term : lambda_term) : string =
   in
   aux term
 
+(*  function to return all the variables in a lambda term *)
 let variables (term : lambda_term) : string list =
   let rec aux (term : lambda_term) : string list =
     match term with
     | Var x -> [ x ]
-    | Abs (x, t) -> union_list [ x ] (aux t)
-    | App (t1, t2) -> union_list (aux t1) (aux t2)
+    | Abs (x, t) -> List.filter (fun y -> y <> x) (aux t)
+    | App (t1, t2) -> List.rev_append (aux t1) (aux t2)
   in
-  aux term
-
-let rec free_vars (term : lambda_term) : string list =
-  match term with
-  | Var x -> [ x ]
-  | Abs (x, t) -> remove_elem (free_vars t) x
-  | App (t1, t2) -> union_list (free_vars t1) (free_vars t2)
-
-let bound_vars (term : lambda_term) : string list =
-  minus_list (variables term) (free_vars term)
-
-let equal (t1 : lambda_term) (t2 : lambda_term) : bool =
-  let rec aux (t1 : lambda_term) (t2 : lambda_term) : bool =
-    match (t1, t2) with
-    | Var x, Var y -> x = y
-    | Abs (x, t), Abs (y, t') -> x = y && aux t t'
-    | App (t1, t2), App (t1', t2') -> aux t1 t1' && aux t2 t2'
-    | _ -> false
-  in
-  aux t1 t2
+  List.sort_uniq String.compare (aux term)
 
 let pp ppf term = Fmt.pf ppf "%s" (print_term term)
 
