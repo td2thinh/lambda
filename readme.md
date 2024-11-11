@@ -4,7 +4,7 @@ This project aims to develop a somewhat sotisphicated Lambda Calculus based lang
 
 # ROAD MAP:
 
-1. Interpreting pure Lambda Calculus:
+## 1. Interpreting pure Lambda Calculus:
   
 - alpha conversion : done
 - left to right call by value evaluation : done
@@ -21,7 +21,7 @@ type lambda_term =
 ```
 Evaluation strategy used is Left-to-Right Call by Value, `I, δ, Ω, S, S K K, S I I, 0, 1, 2, 3, arithmetic operations` is encoded in `tests/ltRCbV.ml`. Tests in this file proved that everything is working as intended.
 
-2. Simple Type:
+## 2. Simple Type:
 
 - type equations : done
 - type occurrence check : done
@@ -60,8 +60,8 @@ The Unification algorithm is as follow :
 
 - Tests with `identity`, `II` `apply`, `K`, `F`, `delta` `omega`, `S`, `S K K`, `S I I`, `S I I I`, `Triple X`, `K I Omega` proved that everything is working as intended.
 
-3. Polymorphed Lambda Calculus with more Types
-4. Imperative features
+## 3. Polymorphed Lambda Calculus with more Types
+## 4. Imperative features
 
 # Project Structure
 ```
