@@ -110,14 +110,19 @@ let rec ltr_cbv_step (term : lambda_term) : lambda_term option =
       match ltr_cbv_step t with Some t' -> Some (Tail t') | None -> None)
   | Head t -> (
       match ltr_cbv_step t with Some t' -> Some (Head t') | None -> None)
-  | Cons (t1, List l) -> Some (List (t1 :: l))
   | Cons (t1, t2) -> (
       match ltr_cbv_step t1 with
       | Some t1' -> Some (Cons (t1', t2))
       | None -> (
           match ltr_cbv_step t2 with
           | Some t2' -> Some (Cons (t1, t2'))
-          | None -> Some (List [ t1; t2 ])))
+          | None -> (
+              match t2 with
+              | List l2 -> (
+                  match t1 with
+                  | List l1 -> Some (List (l1 @ l2))
+                  | _ -> Some (List (t1 :: l2)))
+              | _ -> Some (List [ t1; t2 ]))))
   | List l -> (
       match l with
       | [] -> None
