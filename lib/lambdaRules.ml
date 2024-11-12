@@ -138,11 +138,11 @@ let rec ltr_cbv_step (term : lambda_term) : lambda_term option =
       | None -> ( match t1 with List [] -> Some t2 | _ -> Some t3))
   | Fix t -> (
       match t with
-      (* A fix point should only be applied to a lambda abstraction *)
       | Abs (x, t') ->
           let alpha_renamed = alpha_conversion t' in
-          Some (substitution x alpha_renamed term)
-      | _ -> None)
+          Some (substitution x (Fix t) alpha_renamed)
+      | _ -> (
+          match ltr_cbv_step t with Some t' -> Some (Fix t') | None -> None))
   | Add (t1, t2) -> (
       match ltr_cbv_step t1 with
       | Some t1' -> Some (Add (t1', t2))
