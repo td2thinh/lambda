@@ -38,6 +38,7 @@ let alpha_conversion (term : lambda_term) : lambda_term =
     | Tail t -> Tail (aux t var_map)
     | Fix t -> Fix (aux t var_map)
     | Add (t1, t2) -> Add (aux t1 var_map, aux t2 var_map)
+    | Mult (t1, t2) -> Mult (aux t1 var_map, aux t2 var_map)
     | Sub (t1, t2) -> Sub (aux t1 var_map, aux t2 var_map)
     | Val n -> Val n
   in
@@ -72,6 +73,8 @@ let rec substitution (var : string) (new_term : lambda_term)
   | Fix t -> Fix (substitution var new_term t)
   | Add (t1, t2) ->
       Add (substitution var new_term t1, substitution var new_term t2)
+  | Mult (t1, t2) ->
+      Mult (substitution var new_term t1, substitution var new_term t2)
   | Sub (t1, t2) ->
       Sub (substitution var new_term t1, substitution var new_term t2)
   | Val n -> Val n
@@ -162,6 +165,16 @@ let rec ltr_cbv_step (term : lambda_term) : lambda_term option =
           | None -> (
               match (t1, t2) with
               | Val n1, Val n2 -> Some (Val (n1 - n2))
+              | _ -> None)))
+  | Mult (t1, t2) -> (
+      match ltr_cbv_step t1 with
+      | Some t1' -> Some (Mult (t1', t2))
+      | None -> (
+          match ltr_cbv_step t2 with
+          | Some t2' -> Some (Mult (t1, t2'))
+          | None -> (
+              match (t1, t2) with
+              | Val n1, Val n2 -> Some (Val (n1 * n2))
               | _ -> None)))
   | _ -> None
 

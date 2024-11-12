@@ -11,6 +11,7 @@ let print_term (term : lambda_term) : string =
             match t1_1 with
             | Add (_, t_2_2) -> Printf.sprintf "(%s + %s)" (aux t_2_2) (aux t2)
             | Sub (_, t_2_2) -> Printf.sprintf "(%s - %s)" (aux t_2_2) (aux t2)
+            | Mult (_, t_2_2) -> Printf.sprintf "(%s * %s)" (aux t_2_2) (aux t2)
             | Cons (_, t_2_2) ->
                 Printf.sprintf "(%s :: %s)" (aux t_2_2) (aux t2)
             | _ -> Printf.sprintf "(%s %s)" (aux t1) (aux t2))
@@ -28,6 +29,7 @@ let print_term (term : lambda_term) : string =
     | Fix t -> Printf.sprintf "fix %s" (aux t)
     | Add (t1, t2) -> Printf.sprintf "(%s + %s)" (aux t1) (aux t2)
     | Sub (t1, t2) -> Printf.sprintf "(%s - %s)" (aux t1) (aux t2)
+    | Mult (t1, t2) -> Printf.sprintf "(%s * %s)" (aux t1) (aux t2)
   in
   aux term
 
@@ -51,6 +53,8 @@ let alpha_equal t1 t2 =
     | Val n1, Val n2 -> n1 = n2
     | Fix t1', Fix t2' -> alpha_eq env t1' t2'
     | Add (t1a, t1b), Add (t2a, t2b) ->
+        alpha_eq env t1a t2a && alpha_eq env t1b t2b
+    | Mult (t1a, t1b), Mult (t2a, t2b) ->
         alpha_eq env t1a t2a && alpha_eq env t1b t2b
     | Sub (t1a, t1b), Sub (t2a, t2b) ->
         alpha_eq env t1a t2a && alpha_eq env t1b t2b

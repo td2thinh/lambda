@@ -28,6 +28,9 @@ let sum_3_rec =
 
 let test_sum = App (sum_3_rec, Val 10)
 
+let ex_mult_4_5 =
+  App (App (Abs ("x", Abs ("y", Mult (Var "x", Var "y"))), Val 4), Val 5)
+
 let _ =
   match ltr_cbv_norm ex_plus_4_5 with
   | Ok t -> print_endline (print_term t)
@@ -60,5 +63,10 @@ let _ =
 
 let _ =
   match ltr_cbv_norm test_sum with
+  | Ok t -> print_endline (print_term t)
+  | Error e -> print_endline e
+
+let _ =
+  match ltr_cbv_norm ex_mult_4_5 with
   | Ok t -> print_endline (print_term t)
   | Error e -> print_endline e

@@ -6,6 +6,7 @@ type lambda_term =
   | Val of int
   | Fix of lambda_term
   | Add of lambda_term * lambda_term
+  | Mult of lambda_term * lambda_term
   | Sub of lambda_term * lambda_term
   | IfZero of lambda_term * lambda_term * lambda_term
   | IfEmpty of lambda_term * lambda_term * lambda_term
