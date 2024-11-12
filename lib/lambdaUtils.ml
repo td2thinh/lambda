@@ -9,15 +9,10 @@ let print_term (term : lambda_term) : string =
         match t1 with
         | App (t1_1, t1_2) -> (
             match t1_1 with
-            | Add (t1_1_1, t1_1_2) ->
-                Printf.sprintf "(%s + %s) %s" (aux t1_1_1) (aux t1_1_2)
-                  (aux t1_2)
-            | Sub (t1_1_1, t1_1_2) ->
-                Printf.sprintf "(%s - %s) %s" (aux t1_1_1) (aux t1_1_2)
-                  (aux t1_2)
-            | Cons (t1_1_1, t1_1_2) ->
-                Printf.sprintf "(%s :: %s) %s" (aux t1_1_1) (aux t1_1_2)
-                  (aux t1_2)
+            | Add (_, t_2_2) -> Printf.sprintf "(%s + %s)" (aux t_2_2) (aux t2)
+            | Sub (_, t_2_2) -> Printf.sprintf "(%s - %s)" (aux t_2_2) (aux t2)
+            | Cons (_, t_2_2) ->
+                Printf.sprintf "(%s :: %s)" (aux t_2_2) (aux t2)
             | _ -> Printf.sprintf "(%s %s)" (aux t1) (aux t2))
         | _ -> Printf.sprintf "(%s %s)" (aux t1) (aux t2))
     | IfZero (t1, t2, t3) ->

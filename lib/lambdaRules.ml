@@ -68,6 +68,7 @@ let rec substitution (var : string) (new_term : lambda_term)
 let rec ltr_cbv_step (term : lambda_term) : lambda_term option =
   (* print_endline ("Reducing: " ^ print_term term); *)
   match term with
+  | Var _ -> None
   | App (Abs (x, t), t') -> (
       match ltr_cbv_step t' with
       | Some t2' -> Some (App (Abs (x, t), t2'))
@@ -81,16 +82,74 @@ let rec ltr_cbv_step (term : lambda_term) : lambda_term option =
           | None -> None))
   | Abs (x, t) -> (
       match ltr_cbv_step t with Some t' -> Some (Abs (x, t')) | None -> None)
+  | Let (x, t1, t2) -> (
+      match ltr_cbv_step t1 with
+      | Some t1' -> Some (Let (x, t1', t2))
+      | None -> Some (substitution x t1 t2))
+  | Head t -> (
+      match ltr_cbv_step t with Some t' -> Some (Head t') | None -> None)
+  | Head (List l) -> ( match l with [] -> None | x :: _ -> Some x)
+  | Tail t -> (
+      match ltr_cbv_step t with Some t' -> Some (Tail t') | None -> None)
+  | Tail (List l) -> (
+      match l with [] -> None | _ :: xs -> Some (List xs) | _ -> None)
+  | Cons (t1, t2) -> (
+      match ltr_cbv_step t1 with
+      | Some t1' -> Some (Cons (t1', t2))
+      | None -> (
+          match ltr_cbv_step t2 with
+          | Some t2' -> Some (Cons (t1, t2'))
+          | None -> None))
+  | Cons (t1, List l) -> Some (List (t1 :: l))
+  | Cons (t1, t2) -> Some (List [ t1; t2 ])
   | List l -> (
       match l with
       | [] -> None
       | x :: xs -> (
+          (* Try to reduce the head *)
           match ltr_cbv_step x with
           | Some x' -> Some (List (x' :: xs))
           | None -> (
-              match ltr_cbv_step (List xs) with
-              | Some xs' -> Some (List (x :: xs'))
-              | None -> None)))
+              (* Try to reduce the tail *)
+              let tail = List xs in
+              match ltr_cbv_step tail with
+              | Some (List xs') -> Some (List (x :: xs'))
+              | _ -> None)))
+  | IfZero (t1, t2, t3) -> (
+      match ltr_cbv_step t1 with
+      | Some t1' -> Some (IfZero (t1', t2, t3))
+      | None -> ( match t1 with Val 0 -> Some t2 | _ -> Some t3))
+  | IfEmpty (t1, t2, t3) -> (
+      match ltr_cbv_step t1 with
+      | Some t1' -> Some (IfEmpty (t1', t2, t3))
+      | None -> ( match t1 with List [] -> Some t2 | _ -> Some t3))
+  | Fix t -> (
+      match t with
+      | Abs (x, t') ->
+          let alpha_renamed = alpha_conversion t in
+          Some (substitution x (Fix alpha_renamed) t')
+      | _ -> (
+          match ltr_cbv_step t with Some t' -> Some (Fix t') | None -> None))
+  | Add (t1, t2) -> (
+      match ltr_cbv_step t1 with
+      | Some t1' -> Some (Add (t1', t2))
+      | None -> (
+          match ltr_cbv_step t2 with
+          | Some t2' -> Some (Add (t1, t2'))
+          | None -> (
+              match (t1, t2) with
+              | Val n1, Val n2 -> Some (Val (n1 + n2))
+              | _ -> None)))
+  | Sub (t1, t2) -> (
+      match ltr_cbv_step t1 with
+      | Some t1' -> Some (Sub (t1', t2))
+      | None -> (
+          match ltr_cbv_step t2 with
+          | Some t2' -> Some (Sub (t1, t2'))
+          | None -> (
+              match (t1, t2) with
+              | Val n1, Val n2 -> Some (Val (n1 - n2))
+              | _ -> None)))
   | _ -> None
 
 let max_steps = 300
