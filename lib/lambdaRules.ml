@@ -126,10 +126,9 @@ let rec ltr_cbv_step (term : lambda_term) : lambda_term option =
   | Fix t -> (
       match t with
       | Abs (x, t') ->
-          let alpha_renamed = alpha_conversion t in
-          Some (substitution x (Fix alpha_renamed) t')
-      | _ -> (
-          match ltr_cbv_step t with Some t' -> Some (Fix t') | None -> None))
+          let alpha_renamed = alpha_conversion t' in
+          Some (substitution x alpha_renamed term)
+      | _ -> None)
   | Add (t1, t2) -> (
       match ltr_cbv_step t1 with
       | Some t1' -> Some (Add (t1', t2))
