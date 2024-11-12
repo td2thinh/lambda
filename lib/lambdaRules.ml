@@ -87,8 +87,7 @@ let rec ltr_cbv_step (term : lambda_term) : lambda_term option =
       | Some t1' -> Some (Let (x, t1', t2))
       | None -> Some (substitution x t1 t2))
   | Head (List l) -> ( match l with [] -> None | x :: _ -> Some x)
-  | Tail (List l) -> (
-      match l with [] -> None | _ :: xs -> Some (List xs) | _ -> None)
+  | Tail (List l) -> ( match l with [] -> None | _ :: xs -> Some (List xs))
   | Tail t -> (
       match ltr_cbv_step t with Some t' -> Some (Tail t') | None -> None)
   | Head t -> (

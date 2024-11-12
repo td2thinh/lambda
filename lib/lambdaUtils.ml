@@ -7,7 +7,7 @@ let print_term (term : lambda_term) : string =
     | Abs (x, t) -> Printf.sprintf "(λ%s.%s)" x (aux t)
     | App (t1, t2) -> (
         match t1 with
-        | App (t1_1, t1_2) -> (
+        | App (t1_1, _) -> (
             match t1_1 with
             | Add (_, t_2_2) -> Printf.sprintf "(%s + %s)" (aux t_2_2) (aux t2)
             | Sub (_, t_2_2) -> Printf.sprintf "(%s - %s)" (aux t_2_2) (aux t2)
