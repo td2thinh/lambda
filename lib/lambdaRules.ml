@@ -86,22 +86,21 @@ let rec ltr_cbv_step (term : lambda_term) : lambda_term option =
       match ltr_cbv_step t1 with
       | Some t1' -> Some (Let (x, t1', t2))
       | None -> Some (substitution x t1 t2))
-  | Head t -> (
-      match ltr_cbv_step t with Some t' -> Some (Head t') | None -> None)
   | Head (List l) -> ( match l with [] -> None | x :: _ -> Some x)
-  | Tail t -> (
-      match ltr_cbv_step t with Some t' -> Some (Tail t') | None -> None)
   | Tail (List l) -> (
       match l with [] -> None | _ :: xs -> Some (List xs) | _ -> None)
+  | Tail t -> (
+      match ltr_cbv_step t with Some t' -> Some (Tail t') | None -> None)
+  | Head t -> (
+      match ltr_cbv_step t with Some t' -> Some (Head t') | None -> None)
+  | Cons (t1, List l) -> Some (List (t1 :: l))
   | Cons (t1, t2) -> (
       match ltr_cbv_step t1 with
       | Some t1' -> Some (Cons (t1', t2))
       | None -> (
           match ltr_cbv_step t2 with
           | Some t2' -> Some (Cons (t1, t2'))
-          | None -> None))
-  | Cons (t1, List l) -> Some (List (t1 :: l))
-  | Cons (t1, t2) -> Some (List [ t1; t2 ])
+          | None -> Some (List [ t1; t2 ])))
   | List l -> (
       match l with
       | [] -> None
@@ -125,6 +124,7 @@ let rec ltr_cbv_step (term : lambda_term) : lambda_term option =
       | None -> ( match t1 with List [] -> Some t2 | _ -> Some t3))
   | Fix t -> (
       match t with
+      (* A fix point should only be applied to a lambda abstraction *)
       | Abs (x, t') ->
           let alpha_renamed = alpha_conversion t' in
           Some (substitution x alpha_renamed term)
