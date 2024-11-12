@@ -33,7 +33,13 @@ let alpha_conversion (term : lambda_term) : lambda_term =
     | IfEmpty (t1, t2, t3) ->
         IfEmpty (aux t1 var_map, aux t2 var_map, aux t3 var_map)
     | List l -> List (L.map (fun x -> aux x var_map) l)
-    | _ -> term
+    | Cons (t1, t2) -> Cons (aux t1 var_map, aux t2 var_map)
+    | Head t -> Head (aux t var_map)
+    | Tail t -> Tail (aux t var_map)
+    | Fix t -> Fix (aux t var_map)
+    | Add (t1, t2) -> Add (aux t1 var_map, aux t2 var_map)
+    | Sub (t1, t2) -> Sub (aux t1 var_map, aux t2 var_map)
+    | Val n -> Val n
   in
   aux term var_map
 
@@ -59,7 +65,16 @@ let rec substitution (var : string) (new_term : lambda_term)
           substitution var new_term t2,
           substitution var new_term t3 )
   | List l -> List (L.map (fun x -> substitution var new_term x) l)
-  | _ -> term
+  | Cons (t1, t2) ->
+      Cons (substitution var new_term t1, substitution var new_term t2)
+  | Head t -> Head (substitution var new_term t)
+  | Tail t -> Tail (substitution var new_term t)
+  | Fix t -> Fix (substitution var new_term t)
+  | Add (t1, t2) ->
+      Add (substitution var new_term t1, substitution var new_term t2)
+  | Sub (t1, t2) ->
+      Sub (substitution var new_term t1, substitution var new_term t2)
+  | Val n -> Val n
 
 (* Beta reduction using the Left to Right - Call by Value strategy *)
 (* Reduce to lambda expressions, only reduce Applications

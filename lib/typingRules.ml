@@ -49,6 +49,7 @@ let rec generate_equations (term : lambda_term) (type_term : lambda_type)
       in
       let equa_argument = generate_equations t2 type_var env in
       equa_function @ equa_argument
+  | _ -> []
 
 let rec occur_check (var : string) (t : lambda_type) : bool =
   match t with
