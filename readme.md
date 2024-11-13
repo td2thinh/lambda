@@ -159,6 +159,10 @@ In the test file `tests/testPCF.ml`, I tested the following expressions :
 
 `let_map` : let f = (λx. x + 1) in map f [4; 5; 6] = [5; 6; 7]
 
+`make_then_sum_list` : let make = (λx. if x = 0 then [] else x :: make (x - 1)) in sum (make 7) = 28
+
+`sum_using_foldr` : let foldr = (λf. (λacc. (λl. if l = [] then acc else f (head l) (foldr f acc (tail l))))) in let sum = foldr (+) 0 in sum [1; 2; 3; 4; 5] = 15
+
 All the tests passed successfully.
 
 

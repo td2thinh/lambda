@@ -158,9 +158,44 @@ open CoreLib.LambdaRules
      match ltr_cbv_norm let_x1_x2_plus_4_5 with
      | Ok t -> print_endline (print_term t)
      | Error e -> print_endline e *)
-let list_1_2_3_4_5_6_7 =
-  List [ Val 1; Val 2; Val 3; Val 4; Val 5; Val 6; Val 7 ]
+(* let list_1_2_3_4_5_6_7 =
+     List [ Val 1; Val 2; Val 3; Val 4; Val 5; Val 6; Val 7 ]
 
+   let map_lambda_rec =
+     Fix
+       (Abs
+          ( "map",
+            Abs
+              ( "f",
+                Abs
+                  ( "l",
+                    IfEmpty
+                      ( Var "l",
+                        List [],
+                        Cons
+                          ( App (Var "f", Head (Var "l")),
+                            App (App (Var "map", Var "f"), Tail (Var "l")) ) ) ) )
+          ))
+
+   let map_add_one = App (map_lambda_rec, Abs ("x", Add (Var "x", Val 1)))
+   let ex_map_plus_1 = App (map_add_one, list_1_2_3_4_5_6_7)
+
+   let let_map_test =
+     Let
+       ( "map2",
+         map_lambda_rec,
+         App (App (Var "map2", Abs ("x", Add (Var "x", Val 1))), list_1_2_3_4_5_6_7)
+       )
+
+   let _ =
+     match ltr_cbv_norm ex_map_plus_1 with
+     | Ok t -> print_endline (print_term t)
+     | Error e -> print_endline e
+
+   let _ =
+     match ltr_cbv_norm let_map_test with
+     | Ok t -> print_endline (print_term t)
+     | Error e -> print_endline e *)
 let map_lambda_rec =
   Fix
     (Abs
@@ -177,15 +212,44 @@ let map_lambda_rec =
                          App (App (Var "map", Var "f"), Tail (Var "l")) ) ) ) )
        ))
 
-let map_add_one = App (map_lambda_rec, Abs ("x", Add (Var "x", Val 1)))
-let ex_map_plus_1 = App (map_add_one, list_1_2_3_4_5_6_7)
+let add_one = Abs ("x", Add (Var "x", Val 1))
 
-let let_map_test =
-  Let
-    ( "map2",
-      map_lambda_rec,
-      App (App (Var "map2", Abs ("x", Add (Var "x", Val 1))), list_1_2_3_4_5_6_7)
-    )
+let ex_map_plus_1 =
+  App (App (map_lambda_rec, add_one), List [ Val 1; Val 2; Val 3; Val 4; Val 5 ])
+
+let foldr =
+  Fix
+    (Abs
+       ( "f",
+         Abs
+           ( "g",
+             Abs
+               ( "acc",
+                 Abs
+                   ( "xs",
+                     IfEmpty
+                       ( Var "xs",
+                         Var "acc",
+                         App
+                           ( App (Var "g", Head (Var "xs")),
+                             App
+                               ( App (App (Var "f", Var "g"), Var "acc"),
+                                 Tail (Var "xs") ) ) ) ) ) ) ))
+
+let sum_using_fold_right =
+  Abs
+    ( "l",
+      App
+        ( App
+            ( App (foldr, Abs ("x", Abs ("acc", Add (Var "x", Var "acc")))),
+              Val 0 ),
+          Var "l" ) )
+
+let ex_fold_right =
+  App (sum_using_fold_right, List [ Val 1; Val 2; Val 3; Val 4; Val 5 ])
+
+let test_cons_list =
+  Cons (Cons (Val 1, Val 2), Cons (Cons (Val 3, Val 4), List []))
 
 let _ =
   match ltr_cbv_norm ex_map_plus_1 with
@@ -193,6 +257,11 @@ let _ =
   | Error e -> print_endline e
 
 let _ =
-  match ltr_cbv_norm let_map_test with
+  match ltr_cbv_norm ex_fold_right with
+  | Ok t -> print_endline (print_term t)
+  | Error e -> print_endline e
+
+let _ =
+  match ltr_cbv_norm test_cons_list with
   | Ok t -> print_endline (print_term t)
   | Error e -> print_endline e

@@ -80,6 +80,82 @@ let let_map_test =
       map_lambda_rec,
       App (App (Var "map2", Abs ("x", Add (Var "x", Val 1))), ex_list_4_5_6) )
 
+let make_number_list_function =
+  Fix
+    (Abs
+       ( "make_number_list",
+         Abs
+           ( "n",
+             IfZero
+               ( Var "n",
+                 List [],
+                 Cons
+                   (Var "n", App (Var "make_number_list", Sub (Var "n", Val 1)))
+               ) ) ))
+
+let sum_list =
+  Fix
+    (Abs
+       ( "sum_list",
+         Abs
+           ( "l",
+             IfEmpty
+               ( Var "l",
+                 Val 0,
+                 Add (Head (Var "l"), App (Var "sum_list", Tail (Var "l"))) ) )
+       ))
+
+let sum_all_numbers_in_list =
+  Let
+    ( "make_number_list",
+      make_number_list_function,
+      Let
+        ( "sum_list",
+          sum_list,
+          Let
+            ( "list_1_2_3_4_5_6_7",
+              App (Var "make_number_list", Val 7),
+              App (Var "sum_list", Var "list_1_2_3_4_5_6_7") ) ) )
+
+let foldr =
+  Fix
+    (Abs
+       ( "f",
+         Abs
+           ( "g",
+             Abs
+               ( "acc",
+                 Abs
+                   ( "xs",
+                     IfEmpty
+                       ( Var "xs",
+                         Var "acc",
+                         App
+                           ( App (Var "g", Head (Var "xs")),
+                             App
+                               ( App (App (Var "f", Var "g"), Var "acc"),
+                                 Tail (Var "xs") ) ) ) ) ) ) ))
+
+let sum_using_fold_right =
+  Abs
+    ( "l",
+      App
+        ( App
+            ( App (foldr, Abs ("x", Abs ("acc", Add (Var "x", Var "acc")))),
+              Val 0 ),
+          Var "l" ) )
+
+let ex_fold_right =
+  Let
+    ( "foldr",
+      foldr,
+      Let
+        ( "list_1_2_3_4_5",
+          List [ Val 1; Val 2; Val 3; Val 4; Val 5 ],
+          Let
+            ("sum", sum_using_fold_right, App (Var "sum", Var "list_1_2_3_4_5"))
+        ) )
+
 let term_test =
   Alcotest.testable CoreLib.LambdaUtils.pp CoreLib.LambdaUtils.alpha_equal
 
@@ -226,6 +302,20 @@ let test_let_map () =
   | Ok t -> Alcotest.(check string) "same term" expected (print_term t)
   | Error e -> Alcotest.fail e
 
+let test_make_then_sum_list () =
+  let result = ltr_cbv_norm sum_all_numbers_in_list in
+  let expected = Val 28 in
+  match result with
+  | Ok t -> Alcotest.(check term_test) "same term" expected t
+  | Error e -> Alcotest.fail e
+
+let test_sum_using_foldr () =
+  let result = ltr_cbv_norm ex_fold_right in
+  let expected = Val 15 in
+  match result with
+  | Ok t -> Alcotest.(check term_test) "same term" expected t
+  | Error e -> Alcotest.fail e
+
 let () =
   let open Alcotest in
   run "Lambda"
@@ -253,5 +343,7 @@ let () =
           test_case "tail_empty" `Quick test_tail_empty;
           test_case "let_x1_x2_plus_4_5" `Quick test_let_x1_x2_plus_4_5;
           test_case "let_map" `Quick test_let_map;
+          test_case "make_then_sum_list" `Quick test_make_then_sum_list;
+          test_case "sum_using_foldr" `Quick test_sum_using_foldr;
         ] );
     ]
