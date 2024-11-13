@@ -217,12 +217,18 @@ $ make test
 
 - Free and Bound Variables codes: https://github.com/kmicinski/cmsc330examples
 
+EDIT : I used to use these codes but I found out that I didn't need them so I removed them.
+
 - Dune project example, alcotest: https://github.com/mjambon/dune-starter
 
 - `CoreLib.LambdaUtils.alpha_equal` is copied from Rachid BOUHMAD
+
+EDIT : In the early stages of the project, I copied his code but after I added my own code to it.
+
 - Encoding arithmetic and church integers found at wiki: https://en.wikipedia.org/wiki/Lambda_calculus#Encoding_datatypes
 
 - Idea to improve `CoreLib.LambdaRules.substitution` method found in : https://github.com/kmicinski/cmsc330examples as I was having some problem testing Church numerals, I found out that I need to check for free variables and alpha rename the variables in the substituting term in case there is variable capture (ie. variables of the same name but not the same). I also learned that I could have just alpha renamed my term every reduction step to avoid this problem.
+
 EDIT: Finally, I chose to alpha rename the term every reduction step to avoid variable capture.
 
 - While testing type inference I found out that K.I.ω = I but the algorithm will try to unify the equations and will fail, because ω is diverging so inference will fail with recursive types error but the term is actually well typed. I think this behavior is expected with the given algorithm in the project.
