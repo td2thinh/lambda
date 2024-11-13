@@ -61,6 +61,108 @@ The Unification algorithm is as follow :
 - Tests with `identity`, `II` `apply`, `K`, `F`, `delta` `omega`, `S`, `S K K`, `S I I`, `S I I I`, `Triple X`, `K I Omega` proved that everything is working as intended.
 
 ## 3. Polymorphed Lambda Calculus with more Types
+
+- Update lambda expression to include `Let`, `Integers`, `List`, `IfZero`, `IfEmpty`, `Cons`, `Head`, `Tail`, `Fix Point operator`, `Add`, `Subtract`, `Add` 
+- Update all the functions to evaluate the new expressions
+
+A Lambda expression is now defined as :
+
+```ocaml
+type lambda_term =
+  | Var of string
+  | Abs of string * lambda_term
+  | App of lambda_term * lambda_term
+  | Let of string * lambda_term * lambda_term
+  | Val of int
+  | Fix of lambda_term
+  | Add of lambda_term * lambda_term
+  | Mult of lambda_term * lambda_term
+  | Sub of lambda_term * lambda_term
+  | IfZero of lambda_term * lambda_term * lambda_term
+  | IfEmpty of lambda_term * lambda_term * lambda_term
+  | List of lambda_term list
+  | Cons of lambda_term * lambda_term
+  | Head of lambda_term
+  | Tail of lambda_term
+```
+
+Updated alpha_conversion, substitution and left to right call by value evaluation functions to handle the new expressions.
+
+```ocaml
+.........
+| Let (x, t1, t2) -> (
+      match ltr_cbv_step t1 with
+      (* | Some t1' -> Some (Let (x, t1', t2)) *)
+      (* Can't really reduce the let binding fully because it could be terms that are partially applied *)
+      | _ -> Some (substitution x t1 t2))
+  | Head (List l) -> ( match l with [] -> None | x :: _ -> Some x)
+  | Tail (List l) -> ( match l with [] -> None | _ :: xs -> Some (List xs))
+.........
+
+ | Fix t -> (
+      match t with
+      | Abs (x, t') ->
+          let alpha_renamed = alpha_conversion t' in
+          Some (substitution x (Fix t) alpha_renamed)
+      | _ -> (
+          match ltr_cbv_step t with Some t' -> Some (Fix t') | None -> None))
+
+...................
+```
+### Remarkable notes:
+
+- Head and Tail on empty list will return Head (List []) and Tail (List []) respectively because it is not possible to evaluate them.
+- In Let binding, I can't fully reduce the term because it could be terms that are partially applied, so I just substitute the variable in the term with the value of the let binding.
+- In Point Fix operator, I first alpha rename the term and then substitute the variable in the term with the value of the let binding. It should only be lambda abstraction ie. functions but otherwise I will just reduce the term.
+
+In the test file `tests/testPCF.ml`, I tested the following expressions :
+
+`ex_plus_4_5` : 4 + 5 = 9
+
+`ex_minus_4_5` : 4 - 5 = -1
+
+`ex_list_4_5_6` : [4; 5; 6]
+
+`cons_1_2_3` : (1 :: (2 :: 3))
+
+`cons_1_2_3_eval` : [1; 2; 3] (Prints the list)
+
+`ex_cons_456_123` : [4; 5; 6; 1; 2; 3] (Prints the list)
+
+`ex_cons_123_456` : [1; 2; 3; 4; 5; 6] (Prints the list)
+
+`if0_4_5_6` : if 4 = 0 then 5 else 6 = 6
+
+`if0_0_5_6` : if 0 = 0 then 5 else 6 = 5
+
+`ifempty_4_5_6` : if [4; 5] = [] then 5 else 6 = 6
+
+`ifempty_4_5_6_empty` : if [] = [] then 5 else 6 = 5
+
+`sum` : sum 10 = 55 (Using map to sum the list from 10 to 1)
+
+`ex_mult_4_5` : 4 * 5 = 20
+
+`ex_factoriel_5` : 5! = 120 
+
+`ex_map_plus_1` : map (+1) [1; 2; 3; 4; 5] = [2; 3; 4; 5; 6]
+
+`head` : head [1; 2; 3; 4; 5] = 1
+
+`tail` : tail [1; 2; 3; 4; 5] = [2; 3; 4; 5]
+
+`head_empty` : head [] = head []
+
+`tail_empty` : tail [] = tail []
+
+`let_x1_x2_plus_4_5` : let x1 = 4 in let x2 = 5 in x1 + x2 = 9
+
+`let_map` : let f = (λx. x + 1) in map f [4; 5; 6] = [5; 6; 7]
+
+All the tests passed successfully.
+
+
+
 ## 4. Imperative features
 
 # Project Structure
@@ -78,6 +180,7 @@ lambda/
 │   ├── alphaConv.ml            # Tests for alpha conversion
 │   ├── ltRCbV.ml               # Tests for left-to-right call by value evaluation
 │   ├── typeInference.ml        # Tests for type inference
+│   ├── testPCF.ml              # Tests for traits of PCF
 ├── dune                        # Dune build configuration file
 ├── dune-project                # Dune project file
 ├── lambda.opam                 # OPAM package file
@@ -87,6 +190,11 @@ lambda/
 ```
 
 # Execution
+Install the dependencies:
+
+```bash
+$ opam install . --deps-only
+```
 
 To run the project, you can use the following commands:
 
@@ -119,3 +227,4 @@ EDIT: Finally, I chose to alpha rename the term every reduction step to avoid va
 
 - While testing type inference I found out that K.I.ω = I but the algorithm will try to unify the equations and will fail, because ω is diverging so inference will fail with recursive types error but the term is actually well typed. I think this behavior is expected with the given algorithm in the project.
 
+- I named the part 3 of the project PCF because I understood that it is a language that is based on lambda calculus and has some imperative features, I could be wrong.
