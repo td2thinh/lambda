@@ -19,7 +19,28 @@ type lambda_term =
   | Abs of string * lambda_term
   | App of lambda_term * lambda_term
 ```
-Evaluation strategy used is Left-to-Right Call by Value, `I, δ, Ω, S, S K K, S I I, 0, 1, 2, 3, arithmetic operations` is encoded in `tests/ltRCbV.ml`. Tests in this file proved that everything is working as intended.
+Evaluation strategy used is Left-to-Right Call by Value, evaluation rules for AST are as follows:
+
+```ocaml
+  | Var _ -> None
+  | App (Abs (x, t), t') -> (
+      match ltr_cbv_step t' with
+      | Some t2' -> Some (App (Abs (x, t), t2'))
+      | None -> Some (substitution x t' t))
+  | App (t1, t2) -> (
+      match ltr_cbv_step t1 with
+      | Some t1' -> Some (App (t1', t2))
+      | None -> (
+          match ltr_cbv_step t2 with
+          | Some t2' -> Some (App (t1, t2'))
+          | None -> None))
+  | Abs (x, t) -> (
+      match ltr_cbv_step t with Some t' -> Some (Abs (x, t')) | None -> None)
+```
+
+If the term is a variable, it returns None, if the term is an application of an abstraction to a term, it tries to reduce the term, if the term is an application of two terms, it tries to reduce the first term then the second term, if the term is an abstraction, it tries to reduce the term inside the abstraction.
+
+ `I, δ, Ω, S, S K K, S I I, 0, 1, 2, 3, arithmetic operations` is encoded in `tests/ltRCbV.ml`. Tests in this file proved that everything is working as intended.
 
 ## 2. Simple Type:
 
