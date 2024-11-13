@@ -74,6 +74,12 @@ let test_tail_empty = Tail (List [])
 let let_x1_x2_plus_4_5 =
   Let ("x", Val 1, Let ("y", Val 2, Add (Var "x", Var "y")))
 
+let let_map_test =
+  Let
+    ( "map2",
+      map_lambda_rec,
+      App (App (Var "map2", Abs ("x", Add (Var "x", Val 1))), ex_list_4_5_6) )
+
 let term_test =
   Alcotest.testable CoreLib.LambdaUtils.pp CoreLib.LambdaUtils.alpha_equal
 
@@ -213,6 +219,13 @@ let test_let_x1_x2_plus_4_5 () =
   | Ok t -> Alcotest.(check term_test) "same term" expected t
   | Error e -> Alcotest.fail e
 
+let test_let_map () =
+  let result = ltr_cbv_norm let_map_test in
+  let expected = "[5; 6; 7]" in
+  match result with
+  | Ok t -> Alcotest.(check string) "same term" expected (print_term t)
+  | Error e -> Alcotest.fail e
+
 let () =
   let open Alcotest in
   run "Lambda"
@@ -239,5 +252,6 @@ let () =
           test_case "head_empty" `Quick test_head_empty;
           test_case "tail_empty" `Quick test_tail_empty;
           test_case "let_x1_x2_plus_4_5" `Quick test_let_x1_x2_plus_4_5;
+          test_case "let_map" `Quick test_let_map;
         ] );
     ]
