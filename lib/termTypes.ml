@@ -15,5 +15,9 @@ type lambda_term =
   | Head of lambda_term
   | Tail of lambda_term
 
-type lambda_type = TVar of string | TArrow of lambda_type * lambda_type
-(* | TNat *)
+type lambda_type =
+  | TVar of string
+  | TArrow of lambda_type * lambda_type
+  | TNat
+  | TList of lambda_type
+  | TForAll of string * lambda_type

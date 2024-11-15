@@ -78,4 +78,6 @@ let rec print_type (t : lambda_type) : string =
   | TVar x -> x
   | TArrow (t1, t2) ->
       Printf.sprintf "(%s -> %s)" (print_type t1) (print_type t2)
-(* | TNat -> "Nat" *)
+  | TNat -> "Nat"
+  | TList t -> Printf.sprintf "[%s]" (print_type t)
+  | TForAll (x, t) -> Printf.sprintf "∀%s.%s" x (print_type t)
