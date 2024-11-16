@@ -1,8 +1,7 @@
 open CoreLib.TermTypes
 open CoreLib.LambdaUtils
-
-(* open CoreLib.TypingRules *)
-open CoreLib.LambdaRules
+open CoreLib.TypingRules
+(* open CoreLib.LambdaRules *)
 
 (* let ex_plus_4_5 =
      App (App (Abs ("x", Abs ("y", Add (Var "x", Var "y"))), Val 4), Val 5)
@@ -236,32 +235,126 @@ let foldr =
                                ( App (App (Var "f", Var "g"), Var "acc"),
                                  Tail (Var "xs") ) ) ) ) ) ) ))
 
-let sum_using_fold_right =
-  Abs
-    ( "l",
-      App
-        ( App
-            ( App (foldr, Abs ("x", Abs ("acc", Add (Var "x", Var "acc")))),
-              Val 0 ),
-          Var "l" ) )
+(* let sum_using_fold_right =
+   Abs
+     ( "l",
+       App
+         ( App
+             ( App (foldr, Abs ("x", Abs ("acc", Add (Var "x", Var "acc")))),
+               Val 0 ),
+           Var "l" ) ) *)
 
-let ex_fold_right =
-  App (sum_using_fold_right, List [ Val 1; Val 2; Val 3; Val 4; Val 5 ])
+(* let ex_fold_right =
+   App (sum_using_fold_right, List [ Val 1; Val 2; Val 3; Val 4; Val 5 ]) *)
 
 let test_cons_list =
-  Cons (Cons (Val 1, Val 2), Cons (Cons (Val 3, Val 4), List []))
+  Cons
+    ( Val 1,
+      Cons
+        (Val 2, Cons (Val 3, Cons (Val 4, Cons (Val 5, Cons (Val 6, List [])))))
+    )
+
+let test_list = List [ Val 1; Val 2; Val 3; Val 4; Val 5; Val 6; Val 7 ]
+
+let let_map_test =
+  Let
+    ( "map2",
+      map_lambda_rec,
+      App (App (Var "map2", Abs ("x", Add (Var "x", Val 1))), test_list) )
+
+let tes_head_empty = Head (List [])
 
 let _ =
-  match ltr_cbv_norm ex_map_plus_1 with
-  | Ok t -> print_endline (print_term t)
+  match type_inference map_lambda_rec with
+  | Ok t -> print_endline (print_type t)
   | Error e -> print_endline e
 
-let _ =
-  match ltr_cbv_norm ex_fold_right with
-  | Ok t -> print_endline (print_term t)
-  | Error e -> print_endline e
+let _ = print_endline "-----------------"
 
 let _ =
-  match ltr_cbv_norm test_cons_list with
-  | Ok t -> print_endline (print_term t)
+  match type_inference add_one with
+  | Ok t -> print_endline (print_type t)
   | Error e -> print_endline e
+
+let _ = print_endline "-----------------"
+
+let _ =
+  match type_inference test_cons_list with
+  | Ok t -> print_endline (print_type t)
+  | Error e -> print_endline e
+
+let _ = print_endline "-----------------"
+
+let _ =
+  match type_inference test_list with
+  | Ok t -> print_endline (print_type t)
+  | Error e -> print_endline e
+
+let _ = print_endline "-----------------"
+
+let _ =
+  match type_inference ex_map_plus_1 with
+  | Ok t -> print_endline (print_type t)
+  | Error e -> print_endline e
+
+let _ = print_endline "-----------------"
+
+let _ =
+  match type_inference foldr with
+  | Ok t -> print_endline (print_type t)
+  | Error e -> print_endline e
+
+let _ = print_endline "-----------------"
+
+let _ =
+  match type_inference let_map_test with
+  | Ok t -> print_endline (print_type t)
+  | Error e -> print_endline e
+
+let _ = print_endline "-----------------"
+
+let _ =
+  match type_inference tes_head_empty with
+  | Ok t -> print_endline (print_type t)
+  | Error e -> print_endline e
+
+let _ = print_endline "-----------------"
+
+let make_number_list_function =
+  Fix
+    (Abs
+       ( "make_number_list",
+         Abs
+           ( "n",
+             IfZero
+               ( Var "n",
+                 List [],
+                 Cons
+                   (Var "n", App (Var "make_number_list", Sub (Var "n", Val 1)))
+               ) ) ))
+
+let sum_list =
+  Fix
+    (Abs
+       ( "sum_list",
+         Abs
+           ( "l",
+             IfEmpty
+               ( Var "l",
+                 Val 0,
+                 Add (Head (Var "l"), App (Var "sum_list", Tail (Var "l"))) ) )
+       ))
+
+let _ =
+  match type_inference make_number_list_function with
+  | Ok t -> print_endline (print_type t)
+  | Error e -> print_endline e
+
+let _ = print_endline "-----------------"
+
+let _ =
+  match type_inference sum_list with
+  | Ok t -> print_endline (print_type t)
+  | Error e -> print_endline e
+
+let _ = print_endline "-----------------"

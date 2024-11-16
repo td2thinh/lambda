@@ -81,3 +81,21 @@ let rec print_type (t : lambda_type) : string =
   | TNat -> "Nat"
   | TList t -> Printf.sprintf "[%s]" (print_type t)
   | TForAll (x, t) -> Printf.sprintf "∀%s.%s" x (print_type t)
+
+let pp_type ppf t = Fmt.pf ppf "%s" (print_type t)
+
+let alpha_equal_type t1 t2 =
+  let map = ref [] in
+  let rec aux t1 t2 =
+    match (t1, t2) with
+    | TVar x1, TVar x2 -> (
+        try List.assoc x1 !map = x2 with Not_found -> x1 = x2)
+    | TArrow (t1a, t1b), TArrow (t2a, t2b) -> aux t1a t2a && aux t1b t2b
+    | TNat, TNat -> true
+    | TList t1', TList t2' -> aux t1' t2'
+    | TForAll (x1, t1'), TForAll (x2, t2') ->
+        map := (x1, x2) :: !map;
+        aux t1' t2'
+    | _ -> false
+  in
+  aux t1 t2

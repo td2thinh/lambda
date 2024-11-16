@@ -9,7 +9,7 @@ let ex_minus_4_5 =
   App (App (Abs ("x", Abs ("y", Sub (Var "x", Var "y"))), Val 4), Val 5)
 
 let ex_list_4_5_6 = List [ Val 4; Val 5; Val 6 ]
-let ex_cons_1_2_3 = Cons (Val 1, Cons (Val 2, Val 3))
+let ex_cons_1_2_3 = Cons (Val 1, Cons (Val 2, Cons (Val 3, List [])))
 let ex_cons_456_123 = Cons (ex_list_4_5_6, ex_cons_1_2_3)
 let ex_cons_123_456 = Cons (ex_cons_1_2_3, ex_list_4_5_6)
 let if0_4_5_6 = IfZero (Val 4, Val 5, Val 6)
@@ -180,7 +180,7 @@ let test_ex_list_4_5_6 () =
 
 let test_cons_1_2_3 () =
   let result = print_term ex_cons_1_2_3 in
-  let expected = "(1 :: (2 :: 3))" in
+  let expected = "(1 :: (2 :: (3 :: [])))" in
   Alcotest.(check string) "same term" expected result
 
 let test_cons_1_2_3_eval () =

@@ -1,3 +1,3 @@
 (tests
- (names testPCF alphaConv ltRCbV typeInference)
+ (names testPCF alphaConv ltRCbV typeInference typeInference2)
  (libraries alcotest coreLib))

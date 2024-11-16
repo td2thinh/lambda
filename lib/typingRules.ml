@@ -90,6 +90,97 @@ let generalize_type (env : type_env) (t : lambda_type) : lambda_type =
   in
   List.fold_left (fun typ var -> TForAll (var, typ)) t generalizable_vars
 
+let alpha_conversion_type (t : lambda_type) : lambda_type =
+  let rec aux (t : lambda_type) (env : (string * string) list) : lambda_type =
+    match t with
+    | TVar x -> (
+        match List.assoc_opt x env with Some y -> TVar y | None -> TVar x)
+    | TArrow (t1, t2) -> TArrow (aux t1 env, aux t2 env)
+    | TNat -> TNat
+    | TList t -> TList (aux t env)
+    | TForAll (x, t) ->
+        let new_var = fresh_var_type () in
+        let new_env = (x, new_var) :: env in
+        TForAll (new_var, aux t new_env)
+  in
+  aux t []
+
+(* Only Forall is special, the rest is just the normal equal *)
+let typeEqual (t1 : lambda_type) (t2 : lambda_type) : bool =
+  match (t1, t2) with
+  | TForAll (x1, t1), TForAll (x2, t2) ->
+      let new_var = fresh_var_type () in
+      let new_type = TVar new_var in
+      let new_type1 = substitute_type x1 new_type t1 in
+      let new_type2 = substitute_type x2 new_type t2 in
+      if new_type1 = new_type2 then true else false
+  | _ -> t1 = t2
+
+let different_constructors t1 t2 =
+  match (t1, t2) with
+  | TVar _, _ | _, TVar _ -> false
+  | TArrow _, TArrow _ -> false
+  | TNat, TNat -> false
+  | TList _, TList _ -> false
+  | TForAll _, TForAll _ -> false
+  | _ -> true
+
+let rec unification_step (equations : type_equation) (env : type_env) :
+    (type_equation * type_env, string) result =
+  match equations with
+  | [] -> Ok ([], env)
+  | (t1, t2) :: xs when typeEqual t1 t2 -> unification_step xs env
+  | (TVar x, t) :: xs | (t, TVar x) :: xs ->
+      if occur_check x t then
+        Error
+          (Printf.sprintf
+             "Type error: recursive type detected when unifying %s with %s"
+             (print_type (TVar x)) (print_type t))
+      else
+        let new_env = (x, t) :: env in
+        let new_equations = substitute_type_all x t xs in
+        unification_step new_equations new_env
+  | (TArrow (t1, t2), TArrow (t1', t2')) :: xs ->
+      let new_equations = (t1, t1') :: (t2, t2') :: xs in
+      unification_step new_equations env
+  | (TList t, TList t') :: xs ->
+      let new_equations = (t, t') :: xs in
+      unification_step new_equations env
+  | (TForAll (_, t1), t2) :: xs | (t2, TForAll (_, t1)) :: xs ->
+      let t1' = alpha_conversion_type t1 in
+      let open_forall t = match t with TForAll (_, t) -> t | _ -> t in
+      let new_equations = (open_forall t1', t2) :: xs in
+      unification_step new_equations env
+  | (t1, t2) :: _ when different_constructors t1 t2 ->
+      Error
+        (Printf.sprintf "Type error: cannot unify %s with %s, different types"
+           (print_type t1) (print_type t2))
+  | (t1, t2) :: _ ->
+      Error
+        (Printf.sprintf "Type error: cannot unify %s with %s" (print_type t1)
+           (print_type t2))
+
+let unification (equations : type_equation) (env : type_env) :
+    (type_env, string) result =
+  let counter = ref 0 in
+  let rec aux (equations : type_equation) (env : type_env) :
+      (type_env, string) result =
+    let _ = Printf.printf "Equations: %s\n" (print_equation equations) in
+    if !counter >= max_unification_steps then
+      Error
+        (Printf.sprintf
+           "Maximum unification steps (%d) exceeded - possible infinite type"
+           max_unification_steps)
+    else
+      match unification_step equations env with
+      | Ok ([], env) -> Ok env
+      | Ok (new_equations, new_env) ->
+          counter := !counter + 1;
+          aux new_equations new_env
+      | Error e -> Error e
+  in
+  aux equations env
+
 let rec generate_equations (term : lambda_term) (type_term : lambda_type)
     (env : type_env) : type_equation =
   match term with
@@ -114,49 +205,51 @@ let rec generate_equations (term : lambda_term) (type_term : lambda_type)
       in
       let equa_argument = generate_equations t2 type_var env in
       equa_function @ equa_argument
+  | Fix (Abs (x, t)) ->
+      let new_type1 = TVar (fresh_var_type ()) in
+      let new_type2 = TVar (fresh_var_type ()) in
+      let new_env = (x, TArrow (new_type1, new_type2)) :: env in
+      let equa = generate_equations t (TArrow (new_type1, new_type2)) new_env in
+      [ (type_term, TArrow (new_type1, new_type2)) ] @ equa
   | Val _ -> [ (type_term, TNat) ]
   | Add (t1, t2) | Mult (t1, t2) | Sub (t1, t2) ->
       let t1_equations = generate_equations t1 TNat env in
       let t2_equations = generate_equations t2 TNat env in
-      t1_equations @ t2_equations
-      @ [ (type_term, TArrow (TNat, TArrow (TNat, TNat))) ]
+      t1_equations @ t2_equations @ [ (type_term, TNat) ]
+  | Head t ->
+      let new_var = fresh_var_type () in
+      let new_type = TVar new_var in
+      let equa = generate_equations t (TList new_type) env in
+      equa @ [ (type_term, new_type) ]
+  | Tail t ->
+      let new_var = fresh_var_type () in
+      let new_type = TVar new_var in
+      let equa = generate_equations t (TList new_type) env in
+      equa @ [ (type_term, TList new_type) ]
   | IfZero (t1, t2, t3) ->
-      let equa_t1 = generate_equations t1 TNat env in
-      let equa_t2 = generate_equations t2 type_term env in
-      let equa_t3 = generate_equations t3 type_term env in
-      equa_t1 @ equa_t2 @ equa_t3
+      let equa_condition = generate_equations t1 TNat env in
+      let equa_consequent = generate_equations t2 type_term env in
+      let equa_alternant = generate_equations t3 type_term env in
+      equa_condition @ equa_consequent @ equa_alternant
   | IfEmpty (t1, t2, t3) ->
       let new_var = fresh_var_type () in
-      let type_var = TVar new_var in
-      let equa_t1 = generate_equations t1 (TList type_var) env in
-      let equa_t2 = generate_equations t2 type_term env in
-      let equa_t3 = generate_equations t3 type_term env in
-      equa_t1 @ equa_t2 @ equa_t3
+      let type_var = TList (TVar new_var) in
+      let equa_condition = generate_equations t1 type_var env in
+      let equa_consequent = generate_equations t2 type_term env in
+      let equa_alternant = generate_equations t3 type_term env in
+      equa_condition @ equa_consequent @ equa_alternant
   | List l ->
       let new_var = fresh_var_type () in
       let type_var = TVar new_var in
-      let equa_list = [ (type_term, TList type_var) ] in
-      let equa_l =
-        List.concat (List.map (fun x -> generate_equations x type_var env) l)
-      in
-      equa_list @ equa_l
+      let equa = [ (type_term, TList type_var) ] in
+      List.flatten (List.map (fun x -> generate_equations x type_var env) l)
+      @ equa
   | Cons (t1, t2) ->
       let new_var = fresh_var_type () in
-      let type_var = TVar new_var in
-      let equa_t1 = generate_equations t1 type_var env in
-      let equa_t2 = generate_equations t2 (TList type_var) env in
-      [ (type_term, TList type_var) ] @ equa_t1 @ equa_t2
-  | Head t ->
-      let new_var = fresh_var_type () in
-      let type_var = TVar new_var in
-      let equa_t = generate_equations t (TList type_var) env in
-      equa_t @ [ (type_term, TArrow (TList type_var, type_var)) ]
-  | Tail t -> generate_equations t (TList type_term) env
-  | Fix t ->
-      let new_var = fresh_var_type () in
-      let type_var = TVar new_var in
-      let equa_t = generate_equations t (TArrow (type_var, type_term)) env in
-      [ (type_term, type_var) ] @ equa_t
+      let type_var = TList (TVar new_var) in
+      let equa_head = generate_equations t1 (TVar new_var) env in
+      let equa_tail = generate_equations t2 type_var env in
+      equa_head @ equa_tail @ [ (type_term, type_var) ]
   | Let (x, t1, t2) -> (
       (* On type e1 en utilisant type_inference *)
       match type_inference t1 with
@@ -167,80 +260,7 @@ let rec generate_equations (term : lambda_term) (type_term : lambda_type)
           let new_env = (x, generalized_t0) :: env in
           generate_equations t2 type_term new_env
       | Error e -> failwith ("Type error in let binding: " ^ e))
-
-and unification_step (equations : type_equation) (env : type_env) :
-    (type_equation * type_env, string) result =
-  match equations with
-  | [] -> Ok ([], env)
-  | (t1, t2) :: xs when t1 = t2 ->
-      (* TODO :  need to have a special case for TForAll *)
-      (* Printf.printf "Unifying %s and %s: already equal\n" (print_type t1)
-         (print_type t2); *)
-      unification_step xs env
-  | (TVar x, t) :: xs ->
-      if occur_check x t then Error "Type error: recursion"
-      else
-        let new_env = (x, t) :: env in
-        let new_equations = substitute_type_all x t xs in
-        (* Printf.printf "Substituting %s with %s\nNew equations: %s\n" x
-           (print_type t)
-           (print_equation new_equations); *)
-        unification_step new_equations new_env
-  | (t, TVar x) :: xs ->
-      if occur_check x t then Error "Type error: recursion"
-      else
-        let new_env = (x, t) :: env in
-        let new_equations = substitute_type_all x t xs in
-        (* Printf.printf "Substituting %s with %s\nNew equations: %s\n" x
-           (print_type t)
-           (print_equation new_equations); *)
-        unification_step new_equations new_env
-  | (TArrow (t1, t2), TArrow (t1', t2')) :: xs ->
-      let new_equations = [ (t1, t1'); (t2, t2') ] @ xs in
-      (* Printf.printf
-         "Decomposing arrow types: %s -> %s and %s -> %s\nNew equations: %s\n"
-         (print_type t1) (print_type t2) (print_type t1') (print_type t2')
-         (print_equation new_equations); *)
-      unification_step new_equations env
-  | (TList t, TList t') :: xs ->
-      let new_equations = [ (t, t') ] @ xs in
-      (* Printf.printf "Decomposing list types: [%s] and [%s]\nNew equations: %s\n"
-         (print_type t) (print_type t') (print_equation new_equations); *)
-      unification_step new_equations env
-  (* TODO : Look up how to do this later *)
-  | (TForAll (x, t), TForAll (_, t')) :: xs ->
-      let new_var = fresh_var_type () in
-      let new_type = TVar new_var in
-      let new_equations =
-        [ (substitute_type x new_type t, substitute_type x new_type t') ] @ xs
-      in
-      (* Printf.printf "Decomposing forall types: ∀%s.%s and ∀%s.%s\nNew equations: %s\n"
-         x (print_type t) x' (print_type t') (print_equation new_equations); *)
-      unification_step new_equations env
-  | (t1, t2) :: _ ->
-      Error
-        (Printf.sprintf "Type error: %s and %s are not unifiable"
-           (print_type t1) (print_type t2))
-
-and unification (equations : type_equation) (env : type_env) :
-    (type_env, string) result =
-  let counter = ref 0 in
-  let rec aux (equations : type_equation) (env : type_env) :
-      (type_env, string) result =
-    if !counter >= max_unification_steps then
-      Error "Max unification steps exceeded"
-    else
-      match unification_step equations env with
-      | Ok ([], env) -> Ok env
-      | Ok (new_equations, new_env) ->
-          (* let _ =
-               Printf.printf "Equations: %s\n" (print_equation new_equations)
-             in *)
-          counter := !counter + 1;
-          aux new_equations new_env
-      | Error e -> Error e
-  in
-  aux equations env
+  | _ -> failwith "Not implemented"
 
 and type_inference (term : lambda_term) : (lambda_type, string) result =
   let new_var = fresh_var_type () in

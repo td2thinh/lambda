@@ -93,14 +93,24 @@ let test_delta () =
   match result with
   (* Should be untypable because of recursive type *)
   | Ok _ -> Alcotest.fail "delta should not be typable"
-  | Error e -> Alcotest.(check string) "delta" "Type error: recursion" e
+  | Error e ->
+      Alcotest.(check string)
+        "delta"
+        "Type error: recursive type detected when unifying T59 with (T59 -> \
+         T58)"
+        e
 
 let test_omega () =
   let result = type_inference omega in
   match result with
   (* Should be untypable because of recursive type *)
   | Ok _ -> Alcotest.fail "omega should not be typable"
-  | Error e -> Alcotest.(check string) "omega" "Type error: recursion" e
+  | Error e ->
+      Alcotest.(check string)
+        "omega"
+        "Type error: recursive type detected when unifying T64 with (T64 -> \
+         T63)"
+        e
 
 let test_kiomega () =
   let result = type_inference kiomega in
@@ -109,28 +119,48 @@ let test_kiomega () =
   (* But the type inference is not smart enough to figure that out *)
   (* It tries to unify ω which is diverging *)
   | Ok _ -> Alcotest.fail "kiomega should not be typable"
-  | Error e -> Alcotest.(check string) "kiomega" "Type error: recursion" e
+  | Error e ->
+      Alcotest.(check string)
+        "kiomega"
+        "Type error: recursive type detected when unifying T80 with (T80 -> \
+         T79)"
+        e
 
 let test_xxx () =
   let result = type_inference xxx in
   match result with
   (* Should be untypable because of recursive type *)
   | Ok _ -> Alcotest.fail "xxx should not be typable"
-  | Error e -> Alcotest.(check string) "xxx" "Type error: recursion" e
+  | Error e ->
+      Alcotest.(check string)
+        "xxx"
+        "Type error: recursive type detected when unifying T88 with (T88 -> \
+         (T87 -> T86))"
+        e
 
 let test_sii () =
   let result = type_inference sii in
   match result with
   (* Should be untypable because of recursive type *)
   | Ok _ -> Alcotest.fail "sii should not be typable"
-  | Error e -> Alcotest.(check string) "sii" "Type error: recursion" e
+  | Error e ->
+      Alcotest.(check string)
+        "sii"
+        "Type error: recursive type detected when unifying T104 with (T104 -> \
+         T97)"
+        e
 
 let test_siii () =
   let result = type_inference siii in
   match result with
   (* Should be untypable because of recursive type *)
   | Ok _ -> Alcotest.fail "siii should not be typable"
-  | Error e -> Alcotest.(check string) "siii" "Type error: recursion" e
+  | Error e ->
+      Alcotest.(check string)
+        "siii"
+        "Type error: recursive type detected when unifying T121 with (T121 -> \
+         T114)"
+        e
 
 let () =
   let open Alcotest in
