@@ -17,7 +17,7 @@ All the required parts in the subject are implemented:
 - Evaluation of Polymorphed Lambda Calculus with more types and imperative features
 - Type inference for Polymorphed Lambda Calculus with more types and imperative features
 - Weak Polymorphism
-- A very bad parser
+- A <s>very bad</s> acceptable parser
 
 # ROADMAP:
 
@@ -529,7 +529,14 @@ I'm trying to add a parser to the project, I'm using Menhir to generate the pars
 
 ### Test for the parser is in `tests/parserTest.ml`:
 
-parsing the map function is not working properly.
+<s>parsing the map function is not working properly.</s>
+
+Apart from the usual expressions, I tested this map expression:
+
+`let map = fix (\map.\\f.\l.ifempty l then [] else (f (head l) :: (map f (tail l))) ) in let l = [1; 2; 3] in map (\x.x + 1) l`
+
+It was actually working but it was just my formatter that formats the string on save that was messing up the expression.
+
 
 # Project Structure
 ```

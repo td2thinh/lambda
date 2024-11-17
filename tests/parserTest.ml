@@ -118,19 +118,51 @@ let map_lambda_rec =
                          App (App (Var "map", Var "f"), Tail (Var "l")) ) ) ) )
        ))
 
-(* let ex_map_plus_1 =
-   App
-     ( App (map_lambda_rec, Abs ("x", Add (Var "x", Val 1))),
-       List [ Val 4; Val 5; Val 6 ] ) *)
+let let_map_lambda_rec =
+  Let ("map", map_lambda_rec, Var "map")
+
+let add_one = Abs ("x", Add (Var "x", Val 1))
+let lambda_abstraction_test = App (Abs ("x", Var "x"), Val 3)
+
+let test_lambda =
+  [
+    ( "lambda abstraction test",
+      `Quick,
+      test_parse_eval "(\\x.x) 3" lambda_abstraction_test (Val 3) );
+  ]
+
+let simple_point_fix = Let ("f", Fix (Abs ("f", Abs ("x", Var "x"))), Var "f")
+
+let test_simple_point_fix =
+  [
+    ( "simple point fix",
+      `Quick,
+      test_parse "let f = fix (\\f.\\x.x) in f" simple_point_fix );
+  ]
 
 let map_tests =
   [
     ( "map function",
       `Quick,
-      test_parse_eval
-        "let map = fix (\\map.\\f.\\l.ifempty l [] (f (head l) (map f (tail \
-         l))))"
-        map_lambda_rec map_lambda_rec );
+      test_parse
+        "let map = fix (\\map.\\f.\\l.ifempty l then [] else (f (head l) :: (map f (tail l))) ) in map"
+        let_map_lambda_rec );
+  ]
+
+let map_add_one_tests =
+  [
+    ( "map add one",
+      `Quick,
+      test_parse_eval "let map = fix (\\map.\\f.\\l.ifempty l then [] else (f (head l) :: (map f (tail l))) ) in let l = [1; 2; 3] in map (\\x.x + 1) l"
+        (Let
+           ( "map",
+             map_lambda_rec,
+             Let
+               ( "l",
+                 List [ Val 1; Val 2; Val 3 ],
+                 App (App (Var "map", add_one), Var "l") ) ))
+        (List [ Val 2; Val 3; Val 4 ])
+      );
   ]
 
 (* Run the tests *)
@@ -143,4 +175,7 @@ let () =
       ("conditional expressions", conditional_tests);
       ("reference operations", reference_tests);
       ("map function", map_tests);
+      ("lambda abstraction tests", test_lambda);
+      ("simple point fix tests", test_simple_point_fix);
+      ("map add one tests", map_add_one_tests);
     ]

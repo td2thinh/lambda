@@ -1,6 +1,12 @@
 %{
 open CoreLib.TermTypes
 %}
+%right LAMBDA    
+%right IN
+%left PLUS MINUS
+%left CONS      
+%left APP      
+%nonassoc FIX  
 %token <string> ID
 %token <int> INT
 %token LPAREN "("
@@ -33,10 +39,6 @@ open CoreLib.TermTypes
 %token END
 %token EOF
 
-%left PLUS MINUS
-%left MULT
-%right CONS
-
 %start <CoreLib.TermTypes.lambda_term option> prog
 %%
 
@@ -60,7 +62,8 @@ let element :=
 
 let application :=
   | element
-  | t = application; u = element; { App (t, u) }
+  | "fix"; t = term; { Fix t }  
+  | t = application; u = element; { App (t, u) } %prec APP
   | "head"; t = element; { Head t }
   | "tail"; t = element; { Tail t }
   | "ref"; t = element; { Ref t }
@@ -83,26 +86,23 @@ let arithmetic :=
   | t = term; "*"; u = term; { Mult (t, u) }
 
 let list_expr :=
-  | t = term; "::"; u = term; { Cons (t, u) }
+  | t = term; "::"; u = term; { Cons (t, u) } %prec CONS
 
 let conditional :=
   | "ifzero"; cond = term; "then"; t = term; "else"; e = term;
     { IfZero (cond, t, e) }
-  | "ifempty"; cond = term; "then"; t = term; "else"; e = term;
+  | "ifempty"; cond = term; "then"; t = term; "else"; e = term;  
     { IfEmpty (cond, t, e) }
 
 let assignment :=
   | t = term; ":="; u = term; { Assign (t, u) }
 
-let fix_expr :=
-  | "fix"; t = term; { Fix t }
-
 let term :=
-  | application
-  | abstraction
+  | element
+  | application    
+  | list_expr   
+  | abstraction   
   | let_expr
-  | arithmetic
-  | list_expr
+  | arithmetic 
   | conditional
   | assignment
-  | fix_expr
