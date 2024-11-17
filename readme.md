@@ -285,10 +285,9 @@ For Let binding, it's a little bit tricky because we introduce mutual recursion,
       let infered_t1 = type_inference_mutual_recursive t1 env in
       match infered_t1 with
       | Ok t1_type ->
-          let new_env = (x, t1_type) :: env in
-          let equa1 = generate_equations t1 t1_type env in
-          let equa2 = generate_equations t2 type_term new_env in
-          equa1 @ equa2
+          let generalized_t1 = generalize_type env t1_type in
+          let new_env = (x, generalized_t1) :: env 
+          generate_equations t2 type_term new_env
       | Error e -> failwith e)
 ................
 and type_inference_mutual_recursive (term : lambda_term) (env : type_env) :
@@ -453,7 +452,68 @@ Added 2 tests in test file `tests/typeInference2.ml`:
 
 `let update_list_value` : list = ref [1; 2] ; list := 3 :: 4 :: !list; !list -> TList TNat
 
+### Added Weak Polymporphism to the type inference algorithm :
 
+```ocaml
+type lambda_type =
+  | TVar of string
+  | TArrow of lambda_type * lambda_type
+  | TNat
+  | TList of lambda_type
+  | TForAll of string * lambda_type
+  | TUnit
+  | TRef of lambda_type
+  | TWeak of lambda_type
+```
+
+### Main changes include: 
+
+Check if a term is non expansive
+```ocaml
+let is_non_expansive (term : lambda_term) : bool =
+  match term with
+  | Var _ | Abs _ | Val _ | Unit | Region _ | List _ -> true
+  | _ -> false
+```
+
+If a term is non expansive, we can generalize it, otherwise it's weakly polymorphic
+```ocaml
+let generalize_type (env : type_env) (t : lambda_type) (is_non_expansive : bool)
+    : lambda_type =
+  let free_vars = free_type_variables t in
+  let env_vars =
+    List.fold_left (fun acc (_, typ) -> acc @ free_type_variables typ) [] env
+  in
+  let generalizable_vars =
+    List.filter (fun v -> not (List.mem v env_vars)) free_vars
+  in
+  let generalizable_types =
+    List.fold_right (fun v acc -> TForAll (v, acc)) generalizable_vars t
+  in
+  if is_non_expansive then generalizable_types else TWeak generalizable_types
+```
+
+Let binding inference is now weakly polymorphic
+```ocaml
+ | Let (x, t1, t2) -> (
+      let infered_t1 = type_inference_mutual_recursive t1 env in
+      match infered_t1 with
+      | Ok t1_type ->
+          let generalized_t1 =
+            generalize_type env t1_type (is_non_expansive t1)
+          in
+          let new_env = (x, generalized_t1) :: env in
+          generate_equations t2 type_term new_env
+      | Error e -> failwith e)
+```
+
+### Added tests in test file `tests/weakPoly.ml`:
+
+`term_1` : let f = (λx.x) in (f 3) -> TNat
+`term_2` : let x = ref 3 in ((λy.!x) 4) -> TNat
+`term_3` : let r = ref 0 in let f = (λx.!r) in ((f 1) + (f 42)) -> TNat
+`term_4` : let r = ref 0 in let _ignored = r := 42 in let f = (λx.!r) in (f ()) -> TNat
+`term_5` : let r = ref 0 in let g = (λx.let r2 = ref x in (!r + !r2)) in (g 1) -> TNat
 
 # Project Structure
 ```
@@ -473,6 +533,7 @@ lambda/
 │   ├── typeInference2.ml       # Tests for type inference with PCF types and operations
 │   ├── testPCF.ml              # Tests for traits of PCF
 │   ├── refAssign.ml            # Tests for ref and assign expressions
+│   ├── weakPoly.ml             # Tests for weak polymorphism
 ├── dune                        # Dune build configuration file
 ├── dune-project                # Dune project file
 ├── lambda.opam                 # OPAM package file

@@ -94,6 +94,7 @@ let rec print_type (t : lambda_type) : string =
   | TForAll (x, t) -> Printf.sprintf "∀%s.%s" x (print_type t)
   | TUnit -> "Unit"
   | TRef t -> Printf.sprintf "Ref %s" (print_type t)
+  | TWeak t -> Printf.sprintf "Weak _%s" (print_type t)
 
 let pp_type ppf t = Fmt.pf ppf "%s" (print_type t)
 
@@ -111,6 +112,12 @@ let alpha_equal_type t1 t2 =
         aux t1' t2'
     | TUnit, TUnit -> true
     | TRef t1', TRef t2' -> aux t1' t2'
+    | TWeak t1', TWeak t2' -> aux t1' t2'
     | _ -> false
   in
   aux t1 t2
+
+let is_non_expansive (term : lambda_term) : bool =
+  match term with
+  | Var _ | Abs _ | Val _ | Unit | Region _ | List _ -> true
+  | _ -> false

@@ -28,3 +28,4 @@ type lambda_type =
   | TForAll of string * lambda_type
   | TUnit
   | TRef of lambda_type
+  | TWeak of lambda_type

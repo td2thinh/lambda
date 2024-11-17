@@ -35,6 +35,7 @@ let rec occur_check (var : string) (t : lambda_type) : bool =
   | TForAll (x, t) -> if x = var then false else occur_check var t
   | TUnit -> false
   | TRef t -> occur_check var t
+  | TWeak t -> occur_check var t
 
 let rec substitute_type (var : string) (new_type : lambda_type)
     (t : lambda_type) : lambda_type =
@@ -48,6 +49,7 @@ let rec substitute_type (var : string) (new_type : lambda_type)
       if x = var then t else TForAll (x, substitute_type var new_type t)
   | TUnit -> TUnit
   | TRef t -> TRef (substitute_type var new_type t)
+  | TWeak t -> TWeak (substitute_type var new_type t)
 
 let rec substitute_type_all (var : string) (new_type : lambda_type)
     (equations : type_equation) : type_equation =
@@ -77,6 +79,7 @@ let rec substitute_type_env (env : type_env) (t : lambda_type) : lambda_type =
   | TForAll (x, t) -> TForAll (x, substitute_type_env env t)
   | TUnit -> TUnit
   | TRef t -> TRef (substitute_type_env env t)
+  | TWeak t -> TWeak (substitute_type_env env t)
 
 let rec free_type_variables (t : lambda_type) : string list =
   match t with
@@ -87,8 +90,10 @@ let rec free_type_variables (t : lambda_type) : string list =
   | TNat -> []
   | TUnit -> []
   | TRef t -> free_type_variables t
+  | TWeak t -> free_type_variables t
 
-let generalize_type (env : type_env) (t : lambda_type) : lambda_type =
+let generalize_type (env : type_env) (t : lambda_type) (is_non_expansive : bool)
+    : lambda_type =
   let free_vars = free_type_variables t in
   let env_vars =
     List.fold_left (fun acc (_, typ) -> acc @ free_type_variables typ) [] env
@@ -96,7 +101,10 @@ let generalize_type (env : type_env) (t : lambda_type) : lambda_type =
   let generalizable_vars =
     List.filter (fun v -> not (List.mem v env_vars)) free_vars
   in
-  List.fold_left (fun typ var -> TForAll (var, typ)) t generalizable_vars
+  let generalizable_types =
+    List.fold_right (fun v acc -> TForAll (v, acc)) generalizable_vars t
+  in
+  if is_non_expansive then generalizable_types else TWeak generalizable_types
 
 let alpha_conversion_type (t : lambda_type) : lambda_type =
   let rec aux (t : lambda_type) (env : (string * string) list) : lambda_type =
@@ -112,6 +120,7 @@ let alpha_conversion_type (t : lambda_type) : lambda_type =
         TForAll (new_var, aux t new_env)
     | TUnit -> TUnit
     | TRef t -> TRef (aux t env)
+    | TWeak t -> TWeak (aux t env)
   in
   aux t []
 
@@ -135,6 +144,7 @@ let different_constructors t1 t2 =
   | TForAll _, TForAll _ -> false
   | TUnit, TUnit -> false
   | TRef _, TRef _ -> false
+  | TWeak _, TWeak _ -> false
   | _ -> true
 
 let rec unification_step (equations : type_equation) (env : type_env) :
@@ -142,6 +152,8 @@ let rec unification_step (equations : type_equation) (env : type_env) :
   match equations with
   | [] -> Ok ([], env)
   | (t1, t2) :: xs when typeEqual t1 t2 -> unification_step xs env
+  | (TWeak t1, t2) :: xs | (t2, TWeak t1) :: xs ->
+      unification_step ((t1, t2) :: xs) env
   | (TVar x, t) :: xs | (t, TVar x) :: xs ->
       if occur_check x t then
         Error
@@ -277,18 +289,27 @@ let rec generate_equations (term : lambda_term) (type_term : lambda_type)
   | Assign (t1, t2) ->
       let new_var = fresh_var_type () in
       let type_var = TVar new_var in
-      let equa1 = generate_equations t1 (TRef type_var) env in
-      let equa2 = generate_equations t2 type_var env in
+      let put_weak_types (e : type_env) : type_env =
+        List.map
+          (fun (v, t) ->
+            let t' = match t with TWeak t -> t | _ -> t in
+            (v, t'))
+          e
+      in
+      let new_env = put_weak_types env in
+      let equa1 = generate_equations t1 (TRef type_var) new_env in
+      let equa2 = generate_equations t2 type_var new_env in
       equa1 @ equa2 @ [ (type_term, TUnit) ]
   | Region _ -> [ (type_term, TUnit) ]
   | Let (x, t1, t2) -> (
       let infered_t1 = type_inference_mutual_recursive t1 env in
       match infered_t1 with
       | Ok t1_type ->
-          let new_env = (x, t1_type) :: env in
-          let equa1 = generate_equations t1 t1_type env in
-          let equa2 = generate_equations t2 type_term new_env in
-          equa1 @ equa2
+          let generalized_t1 =
+            generalize_type env t1_type (is_non_expansive t1)
+          in
+          let new_env = (x, generalized_t1) :: env in
+          generate_equations t2 type_term new_env
       | Error e -> failwith e)
   | _ -> failwith "Not implemented"
 

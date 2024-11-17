@@ -1,3 +1,10 @@
 (tests
- (names testPCF alphaConv ltRCbV typeInference typeInference2 refAssign)
+ (names
+  testPCF
+  alphaConv
+  ltRCbV
+  typeInference
+  typeInference2
+  refAssign
+  weakPoly)
  (libraries alcotest coreLib))
