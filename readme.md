@@ -111,7 +111,7 @@ Updated alpha_conversion, substitution and left to right call by value evaluatio
 
 ```ocaml
 .........
-| Let (x, t1, t2) -> (
+  | Let (x, t1, t2) -> (
       match ltr_cbv_step t1 with
       (* | Some t1' -> Some (Let (x, t1', t2)) *)
       (* Can't really reduce the let binding fully because it could be terms that are partially applied *)
@@ -186,7 +186,7 @@ In the test file `tests/testPCF.ml`, I tested the following expressions :
 
 All the tests passed successfully.
 
-- Update the type for types to include `TNat` (Integers), `TList`, `TForAll` :
+### Update the type for types to include `TNat` (Integers), `TList`, `TForAll` :
 
 ```ocaml
 type lambda_type =
@@ -197,7 +197,102 @@ type lambda_type =
   | TForAll of string * lambda_type
 ```
 
-- Updated the type inference algorithm to include the new types
+### Updated the type inference algorithm to include the new types :
+
+- When a term is an operator, the target type is the type of the operator: 
+
+Arithmetic operators : TNat -> TNat -> TNat
+
+Head : TList A -> A
+
+Tail : TList A -> TList A
+
+Cons : A -> TList A -> TList A
+
+IfZero : TNat -> A -> A -> A
+
+IfEmpty : TList A -> B -> (TList A -> B) -> B
+
+Fix : (A -> A) -> A
+
+List : TList A and the type of the elements in the list is A
+
+For Let binding, it's a little bit tricky because we introduce mutual recursion, so we need to infer the type of the first term, then we add the type of the variable to the environment and infer the type of the second term, then we remove the type of the variable from the environment.
+
+```ocaml
+  | Fix (Abs (x, t)) ->
+      let new_type1 = TVar (fresh_var_type ()) in
+      let new_type2 = TVar (fresh_var_type ()) in
+      let new_env = (x, TArrow (new_type1, new_type2)) :: env in
+      let equa = generate_equations t (TArrow (new_type1, new_type2)) new_env in
+      [ (type_term, TArrow (new_type1, new_type2)) ] @ equa
+  | Val _ -> [ (type_term, TNat) ]
+  | Add (t1, t2) | Mult (t1, t2) | Sub (t1, t2) ->
+      let t1_equations = generate_equations t1 TNat env in
+      let t2_equations = generate_equations t2 TNat env in
+      t1_equations @ t2_equations @ [ (type_term, TNat) ]
+  | Head t ->
+      let new_var = fresh_var_type () in
+      let new_type = TVar new_var in
+      let equa = generate_equations t (TList new_type) env in
+      equa @ [ (type_term, new_type) ]
+  | Tail t ->
+      let new_var = fresh_var_type () in
+      let new_type = TVar new_var in
+      let equa = generate_equations t (TList new_type) env in
+      equa @ [ (type_term, TList new_type) ]
+  | IfZero (t1, t2, t3) ->
+      let equa_condition = generate_equations t1 TNat env in
+      let equa_consequent = generate_equations t2 type_term env in
+      let equa_alternant = generate_equations t3 type_term env in
+      equa_condition @ equa_consequent @ equa_alternant
+  | IfEmpty (t1, t2, t3) ->
+      let new_var = fresh_var_type () in
+      let type_var = TList (TVar new_var) in
+      let equa_condition = generate_equations t1 type_var env in
+      let equa_consequent = generate_equations t2 type_term env in
+      let equa_alternant = generate_equations t3 type_term env in
+      equa_condition @ equa_consequent @ equa_alternant
+  | List l ->
+      let new_var = fresh_var_type () in
+      let type_var = TVar new_var in
+      let equa = [ (type_term, TList type_var) ] in
+      List.flatten (List.map (fun x -> generate_equations x type_var env) l)
+      @ equa
+  | Cons (t1, t2) ->
+      let new_var = fresh_var_type () in
+      let type_var = TList (TVar new_var) in
+      let equa_head = generate_equations t1 (TVar new_var) env in
+      let equa_tail = generate_equations t2 type_var env in
+      equa_head @ equa_tail @ [ (type_term, type_var) ]
+  | Let (x, t1, t2) -> (
+      (* On type e1 en utilisant type_inference *)
+      match type_inference t1 with
+      | Ok t0 ->
+          (* On généralise le type t0 *)
+          let generalized_t0 = generalize_type env t0 in
+          (* On génère les équations pour e2 avec x:∀X1,...,Xk.T0 dans l'env *)
+          let new_env = (x, generalized_t0) :: env in
+          generate_equations t2 type_term new_env
+      | Error e -> failwith ("Type error in let binding: " ^ e))
+```
+
+### Unification steps are updated to handle the new types:
+
+TList A = TList B => A = B
+TForAll x A = TForAll y B => A = B[x/y]
+
+```ocaml
+  | (TList t, TList t') :: xs ->
+      let new_equations = (t, t') :: xs in
+      unification_step new_equations env
+  | (TForAll (_, t1), t2) :: xs | (t2, TForAll (_, t1)) :: xs ->
+      let t1' = alpha_conversion_type t1 in
+      let open_forall t = match t with TForAll (_, t) -> t | _ -> t in
+      let new_equations = (open_forall t1', t2) :: xs in
+      unification_step new_equations env
+```
+
 
 - Tests were done on these expressions :
 
@@ -230,6 +325,74 @@ type lambda_type =
 All the tests passed successfully.
 
 ## 4. Imperative features
+- Added `Ref` and `Assign` expressions to the lambda term, an expression is now: 
+  
+```ocaml
+.....
+| Unit
+| Ref of lambda_term
+| Deref of lambda_term
+| Assign of lambda_term * lambda_term
+| Region of int
+```
+
+- A memory region is its ID, a reference is a pointer to a memory region, a dereference is the value at the memory region, an assignment is the value at the memory region is assigned to the value of the expression, a region is a new memory region, defined as :
+  
+```ocaml
+let state : (int * lambda_term) list ref = ref []
+let lookup_region r = List.assoc r !state
+let update_region r v = state := (r, v) :: List.remove_assoc r !state
+```
+
+- Updated the evaluation functions to handle the new expressions
+
+```ocaml
+.........
+  | Unit -> None
+  | Deref (Region id) -> (
+      match lookup_state id !state with Some t -> Some t | None -> None)
+  | Deref e -> (
+      match ltr_cbv_step e with Some e' -> Some (Deref e') | None -> None)
+  | Ref e -> (
+      match ltr_cbv_step e with
+      | Some e' -> Some (Ref e')
+      | None ->
+          (* Can't reduce <=> Val *)
+          let id = fresh_region () in
+          state := (id, e) :: !state;
+          Some (Region id))
+  | Assign (Var x, e) -> Some (Assign (Deref (Var x), e))
+  | Assign (Deref (Region id), e) -> (
+      match ltr_cbv_step e with
+      | Some e' -> Some (Assign (Deref (Region id), e'))
+      | None -> (
+          match lookup_state id !state with
+          | Some _ ->
+              state := update_state id !state e;
+              Some Unit
+          | None -> None))
+  | Assign (e1, e2) -> (
+      match ltr_cbv_step e1 with
+      | Some e1' -> Some (Assign (e1', e2))
+      | None -> (
+          match ltr_cbv_step e2 with
+          | Some e2' -> Some (Assign (e1, e2'))
+          | None -> None))
+  | Region _ -> None
+```
+
+### Remarkable notes:
+I changed back Let binding to try to reduce the e1 term before substituting it in the e2 term, I now have cases for those that can't be reduced.
+```ocaml
+  | Let (x, Fix (Abs (y, t1)), t2) ->
+      Some (substitution x (Fix (Abs (y, t1))) t2)
+  | Let (x, Abs (y, t1), t2) -> Some (substitution x (Abs (y, t1)) t2)
+  | Let (x, t1, t2) -> (
+      match ltr_cbv_step t1 with
+      | Some t1' -> Some (Let (x, t1', t2))
+      | _ -> Some (substitution x t1 t2))
+```
+
 
 # Project Structure
 ```
