@@ -474,3 +474,6 @@ EDIT: Finally, I chose to alpha rename the term every reduction step to avoid va
 - While testing type inference I found out that K.I.ω = I but the algorithm will try to unify the equations and will fail, because ω is diverging so inference will fail with recursive types error but the term is actually well typed. I think this behavior is expected with the given algorithm in the project.
 
 - I named the part 3 of the project PCF because I understood that it is a language that is based on lambda calculus and has some imperative features, I could be wrong.
+
+- While testing around with the type inference and let binding, I found out a HUGE error I was making that when trying to infer the type of `Let x = e1 in e2`, I infer the type of e1 like I'm supposed to but I'm inferring with an empty env, I modified the mutual recursive version of `type_inference` to take the env as a parameter so that I can pass the current env to the type inference of e1 and then continue like I'm supposed to. 
+
