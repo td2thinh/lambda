@@ -420,6 +420,7 @@ lambda/
 │   ├── typeInference.ml        # Tests for type inference
 │   ├── typeInference2.ml       # Tests for type inference with PCF types and operations
 │   ├── testPCF.ml              # Tests for traits of PCF
+│   ├── refAssign.ml            # Tests for ref and assign expressions
 ├── dune                        # Dune build configuration file
 ├── dune-project                # Dune project file
 ├── lambda.opam                 # OPAM package file
