@@ -40,7 +40,6 @@ rule read =
     | "ref"    { REF }
     | "!"      { DEREF }
     | ":="     { ASSIGN }
-    | "region" { REGION }
     | number   { INT (int_of_string (Lexing.lexeme lexbuf)) }
     | "#"      { skip_line lexbuf }
     | string   { ID (Lexing.lexeme lexbuf) }

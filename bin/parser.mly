@@ -1,12 +1,11 @@
 %{
 open CoreLib.TermTypes
 %}
-
 %token <string> ID
 %token <int> INT
 %token LPAREN "("
 %token RPAREN ")"
-%token LAMBDA "λ"
+%token LAMBDA "λ" BACKSLASH "\\" 
 %token DOT "."
 %token LET "let"
 %token IN "in"
@@ -31,7 +30,6 @@ open CoreLib.TermTypes
 %token REF "ref"
 %token DEREF "!"
 %token ASSIGN ":="
-%token REGION "region"
 %token END
 %token EOF
 
@@ -40,7 +38,6 @@ open CoreLib.TermTypes
 %right CONS
 
 %start <CoreLib.TermTypes.lambda_term option> prog
-
 %%
 
 let prog :=
@@ -68,14 +65,14 @@ let application :=
   | "tail"; t = element; { Tail t }
   | "ref"; t = element; { Ref t }
   | "!"; t = element; { Deref t }
-  | "region"; n = INT; { Region n }
 
 let abstraction :=
-  | "λ"; x = ID; u = body; { Abs (x, u) }
+  | lambda_symbol; x = ID; "."; u = term; { Abs (x, u) }
+  | lambda_symbol; x = ID; xs = nonempty_list(ID); "."; u = term; 
+    { List.fold_right (fun x acc -> Abs (x, acc)) (x::xs) u }
 
-let body :=
-  | "."; u = term; { u }
-  | x = ID; u = body; { Abs (x, u) }
+let lambda_symbol :=
+  | "λ" | "\\"  (* Accept both lambda symbol and backslash *)
 
 let let_expr :=
   | "let"; x = ID; "="; t = term; "in"; u = term; { Let (x, t, u) }
@@ -89,7 +86,7 @@ let list_expr :=
   | t = term; "::"; u = term; { Cons (t, u) }
 
 let conditional :=
-  | "ifzero"; cond = term; "then"; t = term; "else"; e = term; 
+  | "ifzero"; cond = term; "then"; t = term; "else"; e = term;
     { IfZero (cond, t, e) }
   | "ifempty"; cond = term; "then"; t = term; "else"; e = term;
     { IfEmpty (cond, t, e) }
