@@ -26,3 +26,5 @@ type lambda_type =
   | TNat
   | TList of lambda_type
   | TForAll of string * lambda_type
+  | TUnit
+  | TRef of lambda_type

@@ -33,6 +33,8 @@ let rec occur_check (var : string) (t : lambda_type) : bool =
   | TNat -> false
   | TList t -> occur_check var t
   | TForAll (x, t) -> if x = var then false else occur_check var t
+  | TUnit -> false
+  | TRef t -> occur_check var t
 
 let rec substitute_type (var : string) (new_type : lambda_type)
     (t : lambda_type) : lambda_type =
@@ -44,6 +46,8 @@ let rec substitute_type (var : string) (new_type : lambda_type)
   | TList t -> TList (substitute_type var new_type t)
   | TForAll (x, t) ->
       if x = var then t else TForAll (x, substitute_type var new_type t)
+  | TUnit -> TUnit
+  | TRef t -> TRef (substitute_type var new_type t)
 
 let rec substitute_type_all (var : string) (new_type : lambda_type)
     (equations : type_equation) : type_equation =
@@ -71,6 +75,8 @@ let rec substitute_type_env (env : type_env) (t : lambda_type) : lambda_type =
   | TNat -> TNat
   | TList t -> TList (substitute_type_env env t)
   | TForAll (x, t) -> TForAll (x, substitute_type_env env t)
+  | TUnit -> TUnit
+  | TRef t -> TRef (substitute_type_env env t)
 
 let rec free_type_variables (t : lambda_type) : string list =
   match t with
@@ -79,6 +85,8 @@ let rec free_type_variables (t : lambda_type) : string list =
   | TList t -> free_type_variables t
   | TForAll (x, t) -> List.filter (fun y -> y <> x) (free_type_variables t)
   | TNat -> []
+  | TUnit -> []
+  | TRef t -> free_type_variables t
 
 let generalize_type (env : type_env) (t : lambda_type) : lambda_type =
   let free_vars = free_type_variables t in
@@ -102,6 +110,8 @@ let alpha_conversion_type (t : lambda_type) : lambda_type =
         let new_var = fresh_var_type () in
         let new_env = (x, new_var) :: env in
         TForAll (new_var, aux t new_env)
+    | TUnit -> TUnit
+    | TRef t -> TRef (aux t env)
   in
   aux t []
 
@@ -123,6 +133,8 @@ let different_constructors t1 t2 =
   | TNat, TNat -> false
   | TList _, TList _ -> false
   | TForAll _, TForAll _ -> false
+  | TUnit, TUnit -> false
+  | TRef _, TRef _ -> false
   | _ -> true
 
 let rec unification_step (equations : type_equation) (env : type_env) :
@@ -151,6 +163,7 @@ let rec unification_step (equations : type_equation) (env : type_env) :
       let open_forall t = match t with TForAll (_, t) -> t | _ -> t in
       let new_equations = (open_forall t1', t2) :: xs in
       unification_step new_equations env
+  | (TRef t1, TRef t2) :: xs -> unification_step ((t1, t2) :: xs) env
   | (t1, t2) :: _ when different_constructors t1 t2 ->
       Error
         (Printf.sprintf "Type error: cannot unify %s with %s, different types"
@@ -250,19 +263,47 @@ let rec generate_equations (term : lambda_term) (type_term : lambda_type)
       let equa_head = generate_equations t1 (TVar new_var) env in
       let equa_tail = generate_equations t2 type_var env in
       equa_head @ equa_tail @ [ (type_term, type_var) ]
+  | Unit -> [ (type_term, TUnit) ]
+  | Ref t ->
+      let new_var = fresh_var_type () in
+      let type_var = TVar new_var in
+      let equa = generate_equations t type_var env in
+      equa @ [ (type_term, TRef type_var) ]
+  | Deref t ->
+      let new_var = fresh_var_type () in
+      let type_var = TVar new_var in
+      let equa = generate_equations t (TRef type_var) env in
+      equa @ [ (type_term, type_var) ]
+  | Assign (t1, t2) ->
+      let new_var = fresh_var_type () in
+      let type_var = TVar new_var in
+      let equa1 = generate_equations t1 (TRef type_var) env in
+      let equa2 = generate_equations t2 type_var env in
+      equa1 @ equa2 @ [ (type_term, TUnit) ]
+  | Region _ -> [ (type_term, TUnit) ]
   | Let (x, t1, t2) -> (
-      (* On type e1 en utilisant type_inference *)
-      match type_inference t1 with
-      | Ok t0 ->
-          (* On généralise le type t0 *)
-          let generalized_t0 = generalize_type env t0 in
-          (* On génère les équations pour e2 avec x:∀X1,...,Xk.T0 dans l'env *)
-          let new_env = (x, generalized_t0) :: env in
-          generate_equations t2 type_term new_env
-      | Error e -> failwith ("Type error in let binding: " ^ e))
+      let infered_t1 = type_inference t1 env in
+      match infered_t1 with
+      | Ok t1_type ->
+          let new_env = (x, t1_type) :: env in
+          let equa1 = generate_equations t1 t1_type env in
+          let equa2 = generate_equations t2 type_term new_env in
+          equa1 @ equa2
+      | Error e -> failwith e)
   | _ -> failwith "Not implemented"
 
-and type_inference (term : lambda_term) : (lambda_type, string) result =
+and type_inference (term : lambda_term) (env : type_env) :
+    (lambda_type, string) result =
+  let new_var = fresh_var_type () in
+  let type_var = TVar new_var in
+  let equations = generate_equations term type_var env in
+  match unification equations env with
+  | Ok env ->
+      let result = substitute_type_env env type_var in
+      Ok result
+  | Error e -> Error e
+
+let type_inference (term : lambda_term) : (lambda_type, string) result =
   let new_var = fresh_var_type () in
   let type_var = TVar new_var in
   let env = [] in

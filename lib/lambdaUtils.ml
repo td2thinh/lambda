@@ -92,6 +92,8 @@ let rec print_type (t : lambda_type) : string =
   | TNat -> "Nat"
   | TList t -> Printf.sprintf "[%s]" (print_type t)
   | TForAll (x, t) -> Printf.sprintf "∀%s.%s" x (print_type t)
+  | TUnit -> "Unit"
+  | TRef t -> Printf.sprintf "Ref %s" (print_type t)
 
 let pp_type ppf t = Fmt.pf ppf "%s" (print_type t)
 
@@ -107,6 +109,8 @@ let alpha_equal_type t1 t2 =
     | TForAll (x1, t1'), TForAll (x2, t2') ->
         map := (x1, x2) :: !map;
         aux t1' t2'
+    | TUnit, TUnit -> true
+    | TRef t1', TRef t2' -> aux t1' t2'
     | _ -> false
   in
   aux t1 t2
