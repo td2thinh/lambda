@@ -1,4 +1,10 @@
+(ocamllex lexer)
+
+(menhir
+ (modules parser))
+
 (executable
  (public_name lambda)
  (name main)
+ (modules main parser lexer)
  (libraries coreLib fmt))
