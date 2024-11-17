@@ -393,6 +393,15 @@ I changed back Let binding to try to reduce the e1 term before substituting it i
       | _ -> Some (substitution x t1 t2))
 ```
 
+- Tests were done on these expressions :
+
+`assign_x_0_plus_1` : x = 0; x = x + 1; x -> 1
+
+`update_list_value` : list = ref [1; 2] ; list := 3 :: 4 :: !list; !list -> [3; 4; 1; 2]
+
+`let_counter` : let counter_fun = (λx. ref x) in let counter = counter_fun 0 in counter_fun + counter_fun + 8 -> 10
+
+
 
 # Project Structure
 ```
