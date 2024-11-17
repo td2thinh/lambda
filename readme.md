@@ -474,9 +474,11 @@ type lambda_type =
 
 Check if a term is non expansive
 ```ocaml
-let is_non_expansive (term : lambda_term) : bool =
+let rec is_non_expansive (term : lambda_term) : bool =
   match term with
   | Var _ | Abs _ | Val _ | Unit | Region _ | List _ -> true
+  | Cons (t1, t2) -> is_non_expansive t1 && is_non_expansive t2
+  | Ref t | Deref t -> is_non_expansive t
   | _ -> false
 ```
 
