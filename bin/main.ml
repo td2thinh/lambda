@@ -61,10 +61,7 @@ let sum_all_numbers_in_list =
               App (Var "make_number_list", Val 7),
               App (Var "sum_list", Var "list_1_2_3_4_5_6_7") ) ) )
 
-let _ =
-  match type_inference sum_all_numbers_in_list with
-  | Ok t -> print_endline (print_type t)
-  | Error e -> print_endline e
+let _ = print_endline (print_term sum_all_numbers_in_list)
 
 let _ =
   match type_inference let_assign_x_0_plus_1 with

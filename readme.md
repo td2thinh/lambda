@@ -199,7 +199,7 @@ type lambda_type =
 
 ### Updated the type inference algorithm to include the new types :
 
-- When a term is an operator, the target type is the type of the operator: 
+When a term is an operator, the target type is the type of the operator: 
 
 Arithmetic operators : TNat -> TNat -> TNat
 
@@ -312,7 +312,7 @@ TForAll x A = TForAll y B => A = B[x/y]
 ```
 
 
-- Tests were done on these expressions :
+The test file `tests/typeInference2.ml` contains the following tests :
 
 `ex_plus_4_5` : TNat
 
@@ -339,6 +339,8 @@ TForAll x A = TForAll y B => A = B[x/y]
 `ex_cons_1_2_3` : TList TNat
 
 `make_number_list_function` : TNat -> TList TNat
+
+`sum_all_numbers_in_list` : let make_number_list = fix (λmake_number_list.(λn.(if0 n then [] else (n :: (make_number_list (n - 1)))))) in let sum_list = fix (λsum_list.(λl.(ifE l then 0 else (head l + (sum_list tail l))))) in let list_1_2_3_4_5_6_7 = (make_number_list 7) in (sum_list list_1_2_3_4_5_6_7) : TNat (A function that makes a list of numbers from 1 to n and sums them)
 
 All the tests passed successfully.
 
@@ -411,15 +413,13 @@ I changed back Let binding to try to reduce the e1 term before substituting it i
       | _ -> Some (substitution x t1 t2))
 ```
 
-- Tests were done on these expressions :
+Test file `tests/refAssign.ml` contains the following tests :
 
 `assign_x_0_plus_1` : x = 0; x = x + 1; x -> 1
 
 `update_list_value` : list = ref [1; 2] ; list := 3 :: 4 :: !list; !list -> [3; 4; 1; 2]
 
 `let_counter` : let counter_fun = (λx. ref x) in let counter = counter_fun 0 in counter_fun + counter_fun + 8 -> 10
-
-
 
 # Project Structure
 ```

@@ -77,6 +77,18 @@ let sum_list =
                  Add (Head (Var "l"), App (Var "sum_list", Tail (Var "l"))) ) )
        ))
 
+let sum_all_numbers_in_list =
+  Let
+    ( "make_number_list",
+      make_number_list_function,
+      Let
+        ( "sum_list",
+          sum_list,
+          Let
+            ( "list_1_2_3_4_5_6_7",
+              App (Var "make_number_list", Val 7),
+              App (Var "sum_list", Var "list_1_2_3_4_5_6_7") ) ) )
+
 let foldr =
   Fix
     (Abs
@@ -200,6 +212,13 @@ let test_cons () =
   | Ok ty -> Alcotest.(check type_test) "ex_cons_1_2_3" expected ty
   | Error e -> Alcotest.fail e
 
+let test_sum_all_numbers_in_list () =
+  let expected = TNat in
+  let result = type_inference sum_all_numbers_in_list in
+  match result with
+  | Ok ty -> Alcotest.(check type_test) "sum_all_numbers_in_list" expected ty
+  | Error e -> Alcotest.fail e
+
 let () =
   let open Alcotest in
   run "Lambda"
@@ -219,5 +238,7 @@ let () =
           test_case "foldr" `Quick test_foldr;
           test_case "ex_cons_1_2_3" `Quick test_cons;
           test_case "make_number_list_function" `Quick test_make_list;
+          test_case "sum_all_numbers_in_list" `Quick
+            test_sum_all_numbers_in_list;
         ] );
     ]
