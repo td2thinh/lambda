@@ -17,7 +17,7 @@ All the required parts in the subject are implemented:
 - Evaluation of Polymorphed Lambda Calculus with more types and imperative features
 - Type inference for Polymorphed Lambda Calculus with more types and imperative features
 - Weak Polymorphism
-
+- A very bad parser
 
 # ROADMAP:
 
@@ -552,12 +552,12 @@ lambda/
 │   ├── testPCF.ml              # Tests for traits of PCF
 │   ├── refAssign.ml            # Tests for ref and assign expressions
 │   ├── weakPoly.ml             # Tests for weak polymorphism
-│   ├── parserTest.ml           # Tests for the parser
+│   └── parserTest.ml           # Tests for the parser
 ├── dune                        # Dune build configuration file
 ├── dune-project                # Dune project file
 ├── lambda.opam                 # OPAM package file
 ├── Makefile                    # Makefile for building and running the project
-├── README.md                   # Project README file
+└── README.md                   # Project README file
 ```
 
 # Execution
