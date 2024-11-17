@@ -1,4 +1,15 @@
+(ocamllex lexer)
+
+(menhir
+ (modules parser))
+
+(library
+ (name lambda_bin)
+ (modules parser lexer)
+ (libraries coreLib fmt))
+
 (executable
  (public_name lambda)
  (name main)
- (libraries coreLib fmt))
+ (modules main)
+ (libraries coreLib fmt lambda_bin))

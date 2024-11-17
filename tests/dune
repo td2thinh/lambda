@@ -6,5 +6,6 @@
   typeInference
   typeInference2
   refAssign
-  weakPoly)
- (libraries alcotest coreLib))
+  weakPoly
+  parserTest)
+ (libraries alcotest coreLib lambda_bin))
