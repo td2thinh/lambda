@@ -14,6 +14,11 @@ type lambda_term =
   | Cons of lambda_term * lambda_term
   | Head of lambda_term
   | Tail of lambda_term
+  | Unit
+  | Ref of lambda_term
+  | Deref of lambda_term
+  | Assign of lambda_term * lambda_term
+  | Region of int
 
 type lambda_type =
   | TVar of string

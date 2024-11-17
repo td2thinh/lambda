@@ -10,6 +10,22 @@ let fresh_var () : string =
   counter_var := !counter_var + 1;
   "X" ^ string_of_int !counter_var
 
+let state : (int * lambda_term) list ref = ref []
+let counter_region : int ref = ref 0
+
+let fresh_region () : int =
+  counter_region := !counter_region + 1;
+  !counter_region
+
+let lookup_state (id : int) (state : (int * lambda_term) list) :
+    lambda_term option =
+  L.assoc_opt id state
+
+let update_state (id : int) (state : (int * lambda_term) list)
+    (new_state : lambda_term) : (int * lambda_term) list =
+  (id, new_state) :: List.remove_assoc id state
+
+(* Map module for string *)
 module StringMap = M.Make (String)
 
 let alpha_conversion (term : lambda_term) : lambda_term =
@@ -41,6 +57,11 @@ let alpha_conversion (term : lambda_term) : lambda_term =
     | Mult (t1, t2) -> Mult (aux t1 var_map, aux t2 var_map)
     | Sub (t1, t2) -> Sub (aux t1 var_map, aux t2 var_map)
     | Val n -> Val n
+    | Unit -> Unit
+    | Ref t -> Ref (aux t var_map)
+    | Deref t -> Deref (aux t var_map)
+    | Assign (t1, t2) -> Assign (aux t1 var_map, aux t2 var_map)
+    | Region n -> Region n
   in
   aux term var_map
 
@@ -78,6 +99,12 @@ let rec substitution (var : string) (new_term : lambda_term)
   | Sub (t1, t2) ->
       Sub (substitution var new_term t1, substitution var new_term t2)
   | Val n -> Val n
+  | Unit -> Unit
+  | Ref t -> Ref (substitution var new_term t)
+  | Deref t -> Deref (substitution var new_term t)
+  | Assign (t1, t2) ->
+      Assign (substitution var new_term t1, substitution var new_term t2)
+  | Region n -> Region n
 
 (* Beta reduction using the Left to Right - Call by Value strategy *)
 (* Reduce to lambda expressions, only reduce Applications
@@ -100,9 +127,12 @@ let rec ltr_cbv_step (term : lambda_term) : lambda_term option =
           | None -> None))
   | Abs (x, t) -> (
       match ltr_cbv_step t with Some t' -> Some (Abs (x, t')) | None -> None)
+  | Let (x, Fix (Abs (y, t1)), t2) ->
+      Some (substitution x (Fix (Abs (y, t1))) t2)
+  | Let (x, Abs (y, t1), t2) -> Some (substitution x (Abs (y, t1)) t2)
   | Let (x, t1, t2) -> (
       match ltr_cbv_step t1 with
-      (* | Some t1' -> Some (Let (x, t1', t2)) *)
+      | Some t1' -> Some (Let (x, t1', t2))
       (* Can't really reduce the let binding fully because it could be terms that are partially applied *)
       | _ -> Some (substitution x t1 t2))
   | Head (List l) -> ( match l with [] -> None | x :: _ -> Some x)
@@ -182,8 +212,40 @@ let rec ltr_cbv_step (term : lambda_term) : lambda_term option =
               match (t1, t2) with
               | Val n1, Val n2 -> Some (Val (n1 * n2))
               | _ -> None)))
-  | _ -> None
+  | Val _ -> None
+  | Unit -> None
+  | Deref (Region id) -> (
+      match lookup_state id !state with Some t -> Some t | None -> None)
+  | Deref e -> (
+      match ltr_cbv_step e with Some e' -> Some (Deref e') | None -> None)
+  | Ref e -> (
+      match ltr_cbv_step e with
+      | Some e' -> Some (Ref e')
+      | None ->
+          (* Can't reduce <=> Val *)
+          let id = fresh_region () in
+          state := (id, e) :: !state;
+          Some (Region id))
+  | Assign (Var x, e) -> Some (Assign (Deref (Var x), e))
+  | Assign (Deref (Region id), e) -> (
+      match ltr_cbv_step e with
+      | Some e' -> Some (Assign (Deref (Region id), e'))
+      | None -> (
+          match lookup_state id !state with
+          | Some _ ->
+              state := update_state id !state e;
+              Some Unit
+          | None -> None))
+  | Assign (e1, e2) -> (
+      match ltr_cbv_step e1 with
+      | Some e1' -> Some (Assign (e1', e2))
+      | None -> (
+          match ltr_cbv_step e2 with
+          | Some e2' -> Some (Assign (e1, e2'))
+          | None -> None))
+  | Region _ -> None
 
+(* Max number of steps to normalize a lambda term *)
 let max_steps = 300
 
 (* Normalize a lambda term using the Left to Right - Call by Value strategy *)

@@ -186,7 +186,48 @@ In the test file `tests/testPCF.ml`, I tested the following expressions :
 
 All the tests passed successfully.
 
+- Update the type for types to include `TNat` (Integers), `TList`, `TForAll` :
 
+```ocaml
+type lambda_type =
+  | TVar of string
+  | TArrow of lambda_type * lambda_type
+  | TNat
+  | TList of lambda_type
+  | TForAll of string * lambda_type
+```
+
+- Updated the type inference algorithm to include the new types
+
+- Tests were done on these expressions :
+
+`ex_plus_4_5` : TNat
+
+`ex_minus_4_5` : TNat
+
+`factoriel` : TNat -> TNat
+
+`ex_factoriel_5` : TNat
+
+`ex_map_plus_1` : TNat
+
+`head` : TNat
+
+`tail` : TNat
+
+`map_lambda_rec` : (A -> B) -> TList A -> TList B
+
+`let_map` : (TNat -> TNat) -> TList TNat -> TList TNat
+
+`sum_all_numbers_in_list` : TList TNat
+
+`foldr` : (A -> B -> B) -> B -> TList A -> B
+
+`ex_cons_1_2_3` : TList TNat
+
+`make_number_list_function` : TNat -> TList TNat
+
+All the tests passed successfully.
 
 ## 4. Imperative features
 
@@ -205,6 +246,7 @@ lambda/
 │   ├── alphaConv.ml            # Tests for alpha conversion
 │   ├── ltRCbV.ml               # Tests for left-to-right call by value evaluation
 │   ├── typeInference.ml        # Tests for type inference
+│   ├── typeInference2.ml       # Tests for type inference with PCF types and operations
 │   ├── testPCF.ml              # Tests for traits of PCF
 ├── dune                        # Dune build configuration file
 ├── dune-project                # Dune project file

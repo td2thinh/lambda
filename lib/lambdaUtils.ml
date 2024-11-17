@@ -30,6 +30,11 @@ let print_term (term : lambda_term) : string =
     | Add (t1, t2) -> Printf.sprintf "(%s + %s)" (aux t1) (aux t2)
     | Sub (t1, t2) -> Printf.sprintf "(%s - %s)" (aux t1) (aux t2)
     | Mult (t1, t2) -> Printf.sprintf "(%s * %s)" (aux t1) (aux t2)
+    | Unit -> "()"
+    | Ref t -> Printf.sprintf "ref %s" (aux t)
+    | Deref t -> Printf.sprintf "!%s" (aux t)
+    | Assign (t1, t2) -> Printf.sprintf "%s := %s" (aux t1) (aux t2)
+    | Region n -> Printf.sprintf "region #%d" n
   in
   aux term
 
@@ -69,6 +74,12 @@ let alpha_equal t1 t2 =
         alpha_eq env t1a t2a && alpha_eq env t1b t2b
     | Head t1, Head t2 -> alpha_eq env t1 t2
     | Tail t1, Tail t2 -> alpha_eq env t1 t2
+    | Unit, Unit -> true
+    | Ref t1, Ref t2 -> alpha_eq env t1 t2
+    | Deref t1, Deref t2 -> alpha_eq env t1 t2
+    | Assign (t1a, t1b), Assign (t2a, t2b) ->
+        alpha_eq env t1a t2a && alpha_eq env t1b t2b
+    | Region n1, Region n2 -> n1 = n2
     | _ -> false
   in
   alpha_eq [] t1 t2
