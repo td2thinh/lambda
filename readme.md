@@ -514,6 +514,12 @@ Let binding inference is now weakly polymorphic
 `term_3` : let r = ref 0 in let f = (λx.!r) in ((f 1) + (f 42)) -> TNat
 `term_4` : let r = ref 0 in let _ignored = r := 42 in let f = (λx.!r) in (f ()) -> TNat
 `term_5` : let r = ref 0 in let g = (λx.let r2 = ref x in (!r + !r2)) in (g 1) -> TNat
+# Parser
+I'm trying to add a parser to the project, I'm using Menhir to generate the parser.
+
+### Test for the parser is in `tests/parserTest.ml`:
+
+parsing the map function is not working properly.
 
 # Project Structure
 ```
@@ -594,8 +600,4 @@ EDIT: Finally, I chose to alpha rename the term every reduction step to avoid va
 
 EDIT: I moved this note above because it is a very important note.
 
-- The parser is barely tested, for the moment, it works on basic expressions but I didn't test it on complex expressions. The point fix operator doesn't work, I'm trying to figure out how to parse recursive functions.
-
-### Test for the parser is in `tests/parserTest.ml`:
-
-parsing the map function is not working properly.
+- The parser is barely tested, for the moment, it works on basic expressions but I didn't test it on complex expressions. The point fix operator doesn't work, I'm trying to figure out how to parse recursive functions. Source for the barebone lambda calculus parser is from here : https://twolodzko.github.io/posts/ocaml-parser.html
