@@ -1,8 +1,25 @@
 # Lambda Calculus Interpreter
 
+<s>
 This project aims to develop a somewhat sotisphicated Lambda Calculus based language.
+</s>
 
-# ROAD MAP:
+This project is a school project for the course "Typing and Static Analysis" (Typage et Analyse Statique) at Sorbonne University. The aim is to develop a Lambda Calculus based language with some imperative features.
+The result below includes a functional-like language with some imperative features, type inference, and weak polymorphism. A parser is also added to the project. The project description is added in the `projet-sujet-24.pdf` file. Unfortunately, it's in French.
+
+# Features: 
+
+All the required parts in the subject are implemented:
+- Evaluation of pure Lambda Calculus expressions
+- Type inference for Lambda Calculus expressions
+- Evaluation of Polymorphed Lambda Calculus with more types
+- Type inference for Polymorphed Lambda Calculus with more types
+- Evaluation of Polymorphed Lambda Calculus with more types and imperative features
+- Type inference for Polymorphed Lambda Calculus with more types and imperative features
+- Weak Polymorphism
+
+
+# ROADMAP:
 
 ## 1. Interpreting pure Lambda Calculus:
   
@@ -399,19 +416,6 @@ let update_region r v = state := (r, v) :: List.remove_assoc r !state
           | None -> None))
   | Region _ -> None
 ```
-
-### Remarkable notes:
-I changed back Let binding to try to reduce the e1 term before substituting it in the e2 term, I now have cases for those that can't be reduced.
-```ocaml
-  | Let (x, Fix (Abs (y, t1)), t2) ->
-      Some (substitution x (Fix (Abs (y, t1))) t2)
-  | Let (x, Abs (y, t1), t2) -> Some (substitution x (Abs (y, t1)) t2)
-  | Let (x, t1, t2) -> (
-      match ltr_cbv_step t1 with
-      | Some t1' -> Some (Let (x, t1', t2))
-      | _ -> Some (substitution x t1 t2))
-```
-
 Test file `tests/refAssign.ml` contains the following tests :
 
 `assign_x_0_plus_1` : x = 0; x = x + 1; x -> 1
@@ -510,9 +514,13 @@ Let binding inference is now weakly polymorphic
 ### Added tests in test file `tests/weakPoly.ml`:
 
 `term_1` : let f = (λx.x) in (f 3) -> TNat
+
 `term_2` : let x = ref 3 in ((λy.!x) 4) -> TNat
+
 `term_3` : let r = ref 0 in let f = (λx.!r) in ((f 1) + (f 42)) -> TNat
+
 `term_4` : let r = ref 0 in let _ignored = r := 42 in let f = (λx.!r) in (f ()) -> TNat
+
 `term_5` : let r = ref 0 in let g = (λx.let r2 = ref x in (!r + !r2)) in (g 1) -> TNat
 # Parser
 I'm trying to add a parser to the project, I'm using Menhir to generate the parser.
