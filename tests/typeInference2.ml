@@ -108,6 +108,24 @@ let foldr =
                                ( App (App (Var "f", Var "g"), Var "acc"),
                                  Tail (Var "xs") ) ) ) ) ) ) ))
 
+let let_assign_x_0_plus_1 =
+  Let
+    ( "x",
+      Ref (Val 0),
+      Let ("_", Assign (Var "x", Add (Deref (Var "x"), Val 1)), Deref (Var "x"))
+    )
+
+let list_ref_1_2 = Ref (List [ Val 1; Val 2 ])
+
+let update_list_value =
+  Let
+    ( "l",
+      list_ref_1_2,
+      Let
+        ( "_",
+          Assign (Var "l", Cons (Val 3, Cons (Val 4, Deref (Var "l")))),
+          Deref (Var "l") ) )
+
 let type_test =
   Alcotest.testable CoreLib.LambdaUtils.pp_type
     CoreLib.LambdaUtils.alpha_equal_type
@@ -219,6 +237,20 @@ let test_sum_all_numbers_in_list () =
   | Ok ty -> Alcotest.(check type_test) "sum_all_numbers_in_list" expected ty
   | Error e -> Alcotest.fail e
 
+let test_let_assign_x_0_plus_1 () =
+  let expected = TNat in
+  let result = type_inference let_assign_x_0_plus_1 in
+  match result with
+  | Ok ty -> Alcotest.(check type_test) "let_assign_x_0_plus_1" expected ty
+  | Error e -> Alcotest.fail e
+
+let test_update_list_value () =
+  let expected = TList TNat in
+  let result = type_inference update_list_value in
+  match result with
+  | Ok ty -> Alcotest.(check type_test) "update_list_value" expected ty
+  | Error e -> Alcotest.fail e
+
 let () =
   let open Alcotest in
   run "Lambda"
@@ -240,5 +272,7 @@ let () =
           test_case "make_number_list_function" `Quick test_make_list;
           test_case "sum_all_numbers_in_list" `Quick
             test_sum_all_numbers_in_list;
+          test_case "let_assign_x_0_plus_1" `Quick test_let_assign_x_0_plus_1;
+          test_case "update_list_value" `Quick test_update_list_value;
         ] );
     ]

@@ -421,6 +421,40 @@ Test file `tests/refAssign.ml` contains the following tests :
 
 `let_counter` : let counter_fun = (λx. ref x) in let counter = counter_fun 0 in counter_fun + counter_fun + 8 -> 10
 
+### Update the type for types to include `TRef` and `TUnit` :
+
+```ocaml
+type lambda_type =
+  | TVar of string
+  | TArrow of lambda_type * lambda_type
+  | TNat
+  | TList of lambda_type
+  | TForAll of string * lambda_type
+  | TUnit
+  | TRef of lambda_type
+```
+
+Updated the type inference algorithm to include the new types :
+
+```ocaml
+  | Ref t -> [ (type_term, TRef t) ]
+  | Deref (Region _) -> [ (type_term, TUnit) ]
+  | Deref t -> generate_equations t (TRef type_term) env
+  | Assign (t1, t2) -> (
+      let equa1 = generate_equations t1 (TRef type_term) env in
+      let equa2 = generate_equations t2 type_term env in
+      equa1 @ equa2)
+  | Region _ -> [ (type_term, TUnit) ]
+```
+
+Added 2 tests in test file `tests/typeInference2.ml`: 
+
+`let_assign_x_0_plus_1` : x = 0; x = x + 1; x -> TNat
+
+`let update_list_value` : list = ref [1; 2] ; list := 3 :: 4 :: !list; !list -> TList TNat
+
+
+
 # Project Structure
 ```
 lambda/
