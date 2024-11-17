@@ -282,7 +282,7 @@ let rec generate_equations (term : lambda_term) (type_term : lambda_type)
       equa1 @ equa2 @ [ (type_term, TUnit) ]
   | Region _ -> [ (type_term, TUnit) ]
   | Let (x, t1, t2) -> (
-      let infered_t1 = type_inference t1 env in
+      let infered_t1 = type_inference_mutual_recursive t1 env in
       match infered_t1 with
       | Ok t1_type ->
           let new_env = (x, t1_type) :: env in
@@ -292,7 +292,7 @@ let rec generate_equations (term : lambda_term) (type_term : lambda_type)
       | Error e -> failwith e)
   | _ -> failwith "Not implemented"
 
-and type_inference (term : lambda_term) (env : type_env) :
+and type_inference_mutual_recursive (term : lambda_term) (env : type_env) :
     (lambda_type, string) result =
   let new_var = fresh_var_type () in
   let type_var = TVar new_var in

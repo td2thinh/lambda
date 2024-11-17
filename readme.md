@@ -276,6 +276,24 @@ For Let binding, it's a little bit tricky because we introduce mutual recursion,
           generate_equations t2 type_term new_env
       | Error e -> failwith ("Type error in let binding: " ^ e))
 ```
+### IMPORTANT NOTE:
+
+- While testing around with the type inference and let binding, I found out a HUGE error I was making that when trying to infer the type of `Let x = e1 in e2`, I infer the type of e1 like I'm supposed to but I'm inferring with an empty env, I modified the mutual recursive version of `type_inference` to take the env as a parameter so that I can pass the current env to the type inference of e1 and then continue like I'm supposed to. 
+
+```ocaml
+| Let (x, t1, t2) -> (
+      let infered_t1 = type_inference_mutual_recursive t1 env in
+      match infered_t1 with
+      | Ok t1_type ->
+          let new_env = (x, t1_type) :: env in
+          let equa1 = generate_equations t1 t1_type env in
+          let equa2 = generate_equations t2 type_term new_env in
+          equa1 @ equa2
+      | Error e -> failwith e)
+................
+and type_inference_mutual_recursive (term : lambda_term) (env : type_env) :
+    (lambda_type, string) result
+```
 
 ### Unification steps are updated to handle the new types:
 
@@ -477,3 +495,5 @@ EDIT: Finally, I chose to alpha rename the term every reduction step to avoid va
 
 - While testing around with the type inference and let binding, I found out a HUGE error I was making that when trying to infer the type of `Let x = e1 in e2`, I infer the type of e1 like I'm supposed to but I'm inferring with an empty env, I modified the mutual recursive version of `type_inference` to take the env as a parameter so that I can pass the current env to the type inference of e1 and then continue like I'm supposed to. 
 
+
+EDIT: I moved this note above because it is a very important note.

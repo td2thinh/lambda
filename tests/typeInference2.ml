@@ -183,10 +183,10 @@ let test_sum_list () =
 
 let test_foldr () =
   let expected =
-    (* ((T112 -> (T108 -> T108)) -> (T108 -> ([T112] -> T108)))' *)
+    (* ((T122 -> (T118 -> T118)) -> (T118 -> ([T122] -> T118))) *)
     TArrow
-      ( TArrow (TVar "T112", TArrow (TVar "T108", TVar "T108")),
-        TArrow (TVar "T108", TArrow (TList (TVar "T112"), TVar "T108")) )
+      ( TArrow (TVar "T122", TArrow (TVar "T118", TVar "T118")),
+        TArrow (TVar "T118", TArrow (TList (TVar "T122"), TVar "T118")) )
   in
   let result = type_inference foldr in
   match result with
